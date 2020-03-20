@@ -89,7 +89,7 @@ data AppDataState = AppDataState
         playerTwo :: PlayerInfo,    -- Данные второго игрока
         appBoard  :: GameBoard      -- Данные игровой доски
     }
-  
+{- 
 data ColorConfig = ColorConfig
   { color1 :: Color -- Color for first number.
   , color2 :: Color -- Color for second number.
@@ -104,10 +104,19 @@ data AppState = AppState
   , number    :: Int         -- Current number.
   , angler    :: Float
   }
-
+-}
 -------------
 -- Constants.
 -------------
+
+baseStatePlayerOne :: PlayerInfo
+baseStatePlayerOne = PlayerInfo (makeColorI 215 215 215 255)((Checker True 1 6), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1) )
+
+baseStatePlayerTwo :: PlayerInfo
+baseStatePlayerTwo = PlayerInfo (makeColorI 22 53 55 255)((Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1) )
+
+baseStateGameBoard :: GameBoard
+baseStateGameBoard = GameBoard (-900.0, 500.0, 900.0, -500.0) (CheckerPoint (840.0, 500.0) True, CheckerPoint (720.0, 500.0) True, CheckerPoint (600.0, 500.0) True, CheckerPoint (480.0, 500.0) True, CheckerPoint (360.0, 500.0) True, CheckerPoint (240.0, 500.0) True, CheckerPoint (-240.0, 500.0) True, CheckerPoint (-360.0, 500.0) True, CheckerPoint (-480.0, 500.0) True, CheckerPoint (-600.0, 500.0) True, CheckerPoint (-720.0, 500.0) True, CheckerPoint (-840.0, 500.0) True, CheckerPoint (-840.0, -500.0) False,CheckerPoint (-720.0, -500.0) False,CheckerPoint (-600.0, -500.0) False,CheckerPoint (-480.0, -500.0) False,CheckerPoint (-360.0, -500.0) False,CheckerPoint (-240.0, -500.0) False,CheckerPoint (240.0, -500.0) False,CheckerPoint (360.0, -500.0) False,CheckerPoint (480.0, -500.0) False, CheckerPoint (600.0, -500.0) False, CheckerPoint (720.0, -500.0) False, CheckerPoint (840.0, -500.0) False) 400 
 
 -- Path to config file.
 configPath :: FilePath
@@ -136,7 +145,7 @@ textShift = 250
 ------------------
 -- Pure functions.
 ------------------
-
+{-
 -- Parse config from string.
 -- Config format: 2 lines, one color per line.
 parseConfig :: String -> Maybe ColorConfig
@@ -149,12 +158,12 @@ parseConfig str = case map findColor (lines str) of
     colorMap = zip names colors
     colors = [red, green, blue, black]
     names  = ["red", "green", "blue", "black"]
-
+-}
 -- Отрисовка игрового поля и шашек игроков
 drawGameApp :: AppDataState -> Picture
 drawGameApp (AppDataState dscale pone ptwo (GameBoard (xo, yo, xt, yt) dGApointsBoard dGAPointsLen)) = Pictures[allScreen]
     where
-        (pb1, pb2, pb3, pb4, pb5, pb6, pb7, pb8, pb9, pb10, pb11, pb12, pb13, pb14, pb15, pb16, pb17, pb18, pb19, pb20, pb21, pb22, pb23, pb24) = dGApointsBoard
+        --(pb1, pb2, pb3, pb4, pb5, pb6, pb7, pb8, pb9, pb10, pb11, pb12, pb13, pb14, pb15, pb16, pb17, pb18, pb19, pb20, pb21, pb22, pb23, pb24) = dGApointsBoard
         
         
         picTriangles = map func dGApointsBoard
@@ -200,7 +209,7 @@ handleGameEvent _ state = state -- Ничего не делаем
 -- Обработчик кадра
 updateGameApp :: Float -> AppDataState -> AppDataState
 updateGameApp _ x = x
-
+{-
 -- Draw a picture: two numbers of different colors defined in config.
 drawApp :: AppState -> Picture
 drawApp (AppState ColorConfig{..} _ n a) = Pictures [pic3, pic2]
@@ -226,7 +235,7 @@ updateApp :: Float -> AppState -> AppState
 updateApp _ AppState{..} = 
     let newangler = angler + 1
     in AppState colors randomGen number newangler
-
+-}
 ------------------------------
 -- Main function for this app.
 ------------------------------
@@ -234,6 +243,13 @@ updateApp _ AppState{..} =
 -- Run game. This is the ONLY unpure function.
 run :: IO ()
 run = do
+    ds <- getScreenSize                   -- Получение размеров экрана в формате IO(Int, Int)
+    let tmp = fst ds                      -- Взятие ширины экрана
+    let ds = fromIntegral(tmp) / 1920.0   -- Расчет масштабного коэффициента
+    print ds                              -- Вывод масштабного коэффициента на экран
+    let initGameState = AppDataState ds baseStatePlayerOne baseStatePlayerTwo baseStateGameBoard
+    play display bgColor fps initGameState drawGameApp handleGameEvent updateGameApp
+{-
   -- Load config file contents (unpure action).
   str <- readFile configPath
   -- Try to parse config.
@@ -250,3 +266,4 @@ run = do
       let initGameState = AppDataState ds (PlayerInfo (makeColorI 215 215 215 255)((Checker True 1 6), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1) )) (PlayerInfo (makeColorI 22 53 55 255)((Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1) )) (GameBoard (-900.0, 500.0, 900.0, -500.0) (CheckerPoint (840.0, 500.0) True, CheckerPoint (720.0, 500.0) True, CheckerPoint (600.0, 500.0) True, CheckerPoint (480.0, 500.0) True, CheckerPoint (360.0, 500.0) True, CheckerPoint (240.0, 500.0) True, CheckerPoint (-240.0, 500.0) True, CheckerPoint (-360.0, 500.0) True, CheckerPoint (-480.0, 500.0) True, CheckerPoint (-600.0, 500.0) True, CheckerPoint (-720.0, 500.0) True, CheckerPoint (-840.0, 500.0) True, CheckerPoint (-840.0, -500.0) False,CheckerPoint (-720.0, -500.0) False,CheckerPoint (-600.0, -500.0) False,CheckerPoint (-480.0, -500.0) False,CheckerPoint (-360.0, -500.0) False,CheckerPoint (-240.0, -500.0) False,CheckerPoint (240.0, -500.0) False,CheckerPoint (360.0, -500.0) False,CheckerPoint (480.0, -500.0) False, CheckerPoint (600.0, -500.0) False, CheckerPoint (720.0, -500.0) False, CheckerPoint (840.0, -500.0) False) 400)
       -- Run application.
       play display bgColor fps initGameState drawGameApp handleGameEvent updateGameApp
+      -}

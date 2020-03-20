@@ -8,7 +8,7 @@ import System.IO
 import Data.Tuple.Select
 import Data.Tuple.Update
 import Data.List
-import Data.Vector hiding (zip, map)
+--import Data.Vector hiding (zip, map)
 --import Data.Array
 
 import Graphics.Gloss.Interface.Pure.Game
@@ -21,12 +21,10 @@ import Graphics.Gloss.Interface.Environment
 -- Пункт
 data CheckerPoint = CheckerPoint
     {
-        stcoord :: (Float, Float),  -- Координата начала пункта в окне
-        dircoord :: Bool            -- Направление пункта - вверх или вниз
+        stcoord     :: (Float, Float),  -- Координата начала пункта в окне
+        dircoord    :: Bool,             -- Направление пункта - вверх или вниз
+        curNumber   :: Int              -- Текущее количество шашек в пункте
     }
-
-takeCurrentCheckerPoint :: CheckerPoint -> CheckerPoint
-takeCurrentCheckerPoint x = x
 
 takeXCoordsCheckerPoint :: CheckerPoint -> Float
 takeXCoordsCheckerPoint chPoint = fst (stcoord chPoint)
@@ -36,6 +34,9 @@ takeYCoordsCheckerPoint chPoint = snd (stcoord chPoint)
 
 takeDirectionCheckerPoint :: CheckerPoint -> Bool
 takeDirectionCheckerPoint chPoint = dircoord chPoint
+
+takeNumberCheckerPoint :: CheckerPoint -> Int
+takeNumberCheckerPoint chPoint = curNumber chPoint
 
 getaPictureChekerPoint :: Float -> Float -> CheckerPoint -> Picture
 getaPictureChekerPoint getdscale getdGAPointsLen pb = if getDirection then Polygon [(getdscale * (xpbcoord - 60), getdscale * ypbcoord), (getdscale * (xpbcoord + 60), getdscale * ypbcoord), (getdscale * xpbcoord, getdscale * (ypbcoord - getdGAPointsLen)), (getdscale * (xpbcoord - 60), getdscale * ypbcoord)] else Polygon [(getdscale * (xpbcoord - 60), getdscale * ypbcoord), (getdscale * (xpbcoord + 60), getdscale * ypbcoord), (getdscale * xpbcoord, getdscale * (ypbcoord + getdGAPointsLen)), (getdscale * (xpbcoord - 60), getdscale * ypbcoord)] where
@@ -63,22 +64,23 @@ takePosPointChecker ch = pospoint ch
 -- Игрок    
 data PlayerInfo = PlayerInfo
     {
-        checkerColor :: Color,  -- Цвет шашек
-        checkers :: [Checker]   -- Шашки игрока
+        checkerColor    :: Color,       -- Цвет шашек
+        checkers        :: [Checker]    -- Шашки игрока
     }
     
 takePlayerColor :: PlayerInfo -> Color
 takePlayerColor pl = checkerColor pl
 
---takeCheckPlayer :: PlayerInfo -> Int -> Checker
---takeCheckPlayer pl n = if n == 1 then sel1 (checkers pl) else sel2 (checkers pl)
+takeCheckersPlayer :: PlayerInfo -> [Checker]
+takeCheckersPlayer pl = checkers pl
     
 -- Игровая доска
 data GameBoard = GameBoard
     {
-        coordBoard   :: (Float, Float, Float, Float),   -- Координаты области доски
-        pointsBoard  :: [CheckerPoint],                 -- Пункты на доске
-        pointsLength :: Float                           -- Длина пунктов на доске
+        coordBoard          :: (Float, Float, Float, Float),   -- Координаты области доски
+        redPointsBoard      :: [CheckerPoint],                 -- Пункты на доске
+        whitePointsBoard    :: [CheckerPoint], 
+        pointsLength        :: Float                           -- Длина пунктов на доске
     }
   
 -- Состояния параметров приложения
@@ -110,13 +112,51 @@ data AppState = AppState
 -------------
 
 baseStatePlayerOne :: PlayerInfo
-baseStatePlayerOne = PlayerInfo (makeColorI 215 215 215 255)((Checker True 1 6), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1) )
+baseStatePlayerOne = PlayerInfo (makeColorI 215 215 215 255)[(Checker True 1 1), (Checker True 1 2),
+                                                            (Checker True 12 1), (Checker True 12 2),
+                                                            (Checker True 12 3), (Checker True 12 4),
+                                                            (Checker True 12 5), (Checker True 17 1),
+                                                            (Checker True 17 2), (Checker True 17 3),
+                                                            (Checker True 19 1), (Checker True 19 2),
+                                                            (Checker True 19 3), (Checker True 19 4),
+                                                            (Checker True 19 5)]
 
 baseStatePlayerTwo :: PlayerInfo
-baseStatePlayerTwo = PlayerInfo (makeColorI 22 53 55 255)((Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1), (Checker True 1 1) )
+baseStatePlayerTwo = PlayerInfo (makeColorI 22 53 55 255) [(Checker True 6 1),   (Checker True 6 2),
+                                                            (Checker True 6 3),  (Checker True 6 4),
+                                                            (Checker True 6 5),  (Checker True 8 1),
+                                                            (Checker True 8 2),  (Checker True 8 3),
+                                                            (Checker True 13 1), (Checker True 13 2),
+                                                            (Checker True 13 3), (Checker True 13 4),
+                                                            (Checker True 13 5), (Checker True 24 1),
+                                                            (Checker True 24 2)]
 
 baseStateGameBoard :: GameBoard
-baseStateGameBoard = GameBoard (-900.0, 500.0, 900.0, -500.0) (CheckerPoint (840.0, 500.0) True, CheckerPoint (720.0, 500.0) True, CheckerPoint (600.0, 500.0) True, CheckerPoint (480.0, 500.0) True, CheckerPoint (360.0, 500.0) True, CheckerPoint (240.0, 500.0) True, CheckerPoint (-240.0, 500.0) True, CheckerPoint (-360.0, 500.0) True, CheckerPoint (-480.0, 500.0) True, CheckerPoint (-600.0, 500.0) True, CheckerPoint (-720.0, 500.0) True, CheckerPoint (-840.0, 500.0) True, CheckerPoint (-840.0, -500.0) False,CheckerPoint (-720.0, -500.0) False,CheckerPoint (-600.0, -500.0) False,CheckerPoint (-480.0, -500.0) False,CheckerPoint (-360.0, -500.0) False,CheckerPoint (-240.0, -500.0) False,CheckerPoint (240.0, -500.0) False,CheckerPoint (360.0, -500.0) False,CheckerPoint (480.0, -500.0) False, CheckerPoint (600.0, -500.0) False, CheckerPoint (720.0, -500.0) False, CheckerPoint (840.0, -500.0) False) 400 
+baseStateGameBoard = GameBoard (-900.0, 500.0, 900.0, -500.0) [
+                                                            CheckerPoint (840.0, 500.0)     True 2,
+                                                            CheckerPoint (600.0, 500.0)     True 0,
+                                                            CheckerPoint (360.0, 500.0)     True 0,
+                                                            CheckerPoint (-240.0, 500.0)    True 0,
+                                                            CheckerPoint (-480.0, 500.0)    True 0,
+                                                            CheckerPoint (-720.0, 500.0)    True 0,
+                                                            CheckerPoint (-840.0, -500.0)   False 5,
+                                                            CheckerPoint (-600.0, -500.0)   False 0,
+                                                            CheckerPoint (-360.0, -500.0)   False 3,
+                                                            CheckerPoint (240.0, -500.0)    False 5,
+                                                            CheckerPoint (480.0, -500.0)    False 5,
+                                                            CheckerPoint (720.0, -500.0)    False 0] [
+                                                            CheckerPoint (720.0, 500.0)     True 0,
+                                                            CheckerPoint (480.0, 500.0)     True 0,
+                                                            CheckerPoint (240.0, 500.0)     True 5,
+                                                            CheckerPoint (-360.0, 500.0)    True 3,
+                                                            CheckerPoint (-600.0, 500.0)    True 0,
+                                                            CheckerPoint (-840.0, 500.0)    True 5,
+                                                            CheckerPoint (-720.0, -500.0)   False 0,
+                                                            CheckerPoint (-480.0, -500.0)   False 0,
+                                                            CheckerPoint (-240.0, -500.0)   False 0,
+                                                            CheckerPoint (360.0, -500.0)    False 0,
+                                                            CheckerPoint (600.0, -500.0)    False 0,
+                                                            CheckerPoint (840.0, -500.0)    False 2] 400 
 
 -- Path to config file.
 configPath :: FilePath
@@ -159,52 +199,70 @@ parseConfig str = case map findColor (lines str) of
     colors = [red, green, blue, black]
     names  = ["red", "green", "blue", "black"]
 -}
+getChkPic :: [CheckerPoint] -> [CheckerPoint] -> Float -> Float -> Color -> Checker -> Picture
+getChkPic fRedPointsBoard fWhitePointsBoard fPointLen fScale fColorChk fCheckerCur = pic 
+    where 
+        fCursorPoint = curpoint fCheckerCur
+        fRealCur = if even fCursorPoint then
+            (div fCursorPoint 2) - 1
+        else
+            (div fCursorPoint 2) + 12
+        fPointsBoard = fWhitePointsBoard ++ fRedPointsBoard
+        fCheckerPoint = fPointsBoard !! fRealCur
+        pic = Color fColorChk (Translate (fScale * (takeXCoordsCheckerPoint fCheckerPoint)) (fScale * ((takeYCoordsCheckerPoint fCheckerPoint) - if (takeDirectionCheckerPoint fCheckerPoint)
+            then
+                ( (fPointLen / (fromIntegral (takeNumberCheckerPoint fCheckerPoint))) * fromIntegral (takePosPointChecker fCheckerCur))
+            else 
+                (- (fPointLen / (fromIntegral (takeNumberCheckerPoint fCheckerPoint))) * fromIntegral (takePosPointChecker fCheckerCur)))) (ThickCircle (fScale * 10) (fScale * 80)) )
+                
+                --if Even fCursorPoint then
+                --    fRealCur = fCursorPoint / 2 - 1
+                --    fCheckerPoint = fWhitePointsBoard !! fRealCur
+                --    pic = Translate (fScale * (takeXCoordsCheckerPoint fCheckerPoint)) (fScale * (takeYCoordsCheckerPoint fCheckerPoint) - if takeDirectionCheckerPoint fCheckerPoint then (fScale * fPointLen / takeNumberCheckerPoint fCheckerPoint * (takePosPointChecker fCheckerCur)) else (- fScale * fPointLen / takeNumberCheckerPoint fCheckerPoint * (takePosPointChecker fCheckerCur))) (ThickCircle fScale * 10 fScale * 80) 
+                --else 
+                --    fRealCur = fCursorPoint 'div' 2
+                --    fCheckerPoint = fRedPointsBoard !! fRealCur
+                --    pic = Translate (fScale * (takeXCoordsCheckerPoint fCheckerPoint)) (fScale * (takeYCoordsCheckerPoint fCheckerPoint) - if takeDirectionCheckerPoint fCheckerPoint then (fScale * fPointLen / takeNumberCheckerPoint fCheckerPoint * (takePosPointChecker fCheckerCur)) else (- fScale * fPointLen / takeNumberCheckerPoint fCheckerPoint * (takePosPointChecker fCheckerCur))) (ThickCircle fScale * 10 fScale * 80) 
+
 -- Отрисовка игрового поля и шашек игроков
 drawGameApp :: AppDataState -> Picture
-drawGameApp (AppDataState dscale pone ptwo (GameBoard (xo, yo, xt, yt) dGApointsBoard dGAPointsLen)) = Pictures[allScreen]
+drawGameApp (AppDataState dscale pOne pTwo (GameBoard (xo, yo, xt, yt) dGARedPointsBoard dGAWhitePointsBoard dGAPointsLen)) = Pictures [allScreen]
     where
-        --(pb1, pb2, pb3, pb4, pb5, pb6, pb7, pb8, pb9, pb10, pb11, pb12, pb13, pb14, pb15, pb16, pb17, pb18, pb19, pb20, pb21, pb22, pb23, pb24) = dGApointsBoard
+        picRedTriangles = map func dGARedPointsBoard
+            where func = getaPictureChekerPoint dscale dGAPointsLen
+        picRTriangles = map func picRedTriangles
+            where func = Color (makeColorI 135 67 8 255)
+        picWhiteTriangles = map func dGAWhitePointsBoard
+            where func = getaPictureChekerPoint dscale dGAPointsLen
+        picWTriangles = map func picWhiteTriangles
+            where func = Color (makeColorI 249 214 184 255)
+        picTriangles = Pictures[Pictures picWTriangles, Pictures picRTriangles]
+
+        picboard = Color (makeColorI 91 58 41 255) (Polygon [(dscale * xo, dscale * yo),
+                                                            (dscale * xo, dscale * yt),
+                                                            (dscale * xt, dscale * yt),
+                                                            (dscale * xt, dscale * yo),
+                                                            (dscale * xo,dscale * yo)])
         
+        picBar = Color (makeColorI 118 60 40 255) (Polygon [(dscale * (-100), dscale * yo),
+                                                            (dscale * 100, dscale * yo),
+                                                            (dscale * 100, dscale * yt),
+                                                            (dscale * (-100), dscale * yt),
+                                                            (dscale * (-100), dscale * yo)])
+        picChkPlOne = map func (takeCheckersPlayer pOne)
+            where func = getChkPic dGARedPointsBoard dGAWhitePointsBoard dGAPointsLen dscale (takePlayerColor pOne)
+        picChkPlTwo = map func (takeCheckersPlayer pTwo)
+            where func = getChkPic dGARedPointsBoard dGAWhitePointsBoard dGAPointsLen dscale (takePlayerColor pTwo)
+
+        --picCheckPO1 = if takeCurPointChecker (takeCheckPlayer pone 1) == 1 then Translate (dscale * takeXCoordsCheckerPoint pb1) (dscale * (takeYCoordsCheckerPoint pb1 - (50 * fromIntegral (takePosPointChecker (takeCheckPlayer pone 1))))) (ThickCircle dscale * 10 dscale * 80) else Translate (dscale * takeXCoordsCheckerPoint pb2) (dscale * takeYCoordsCheckerPoint pb2) (ThickCircle 40 40)
         
-        picTriangles = map func dGApointsBoard
-            where func = getaPictureChekerPoint dscale dGAPointsLen 
-        
-        --pictriangle1  = Color (makeColorI 135 67 8 255)     (getaPictureChekerPoint pb1 dscale dGAPointsLen)
-        --pictriangle2  = Color (makeColorI 249 214 184 255)  (getaPictureChekerPoint pb2 dscale dGAPointsLen)
-        --pictriangle3  = Color (makeColorI 135 67 8 255)     (getaPictureChekerPoint pb3 dscale dGAPointsLen)
-        --pictriangle4  = Color (makeColorI 249 214 184 255)  (getaPictureChekerPoint pb4 dscale dGAPointsLen)
-        --pictriangle5  = Color (makeColorI 135 67 8 255)     (getaPictureChekerPoint pb5 dscale dGAPointsLen)
-        --pictriangle6  = Color (makeColorI 249 214 184 255)  (getaPictureChekerPoint pb6 dscale dGAPointsLen)
-        --pictriangle7  = Color (makeColorI 135 67 8 255)     (getaPictureChekerPoint pb7 dscale dGAPointsLen)
-        --pictriangle8  = Color (makeColorI 249 214 184 255)  (getaPictureChekerPoint pb8 dscale dGAPointsLen)
-        --pictriangle9  = Color (makeColorI 135 67 8 255)     (getaPictureChekerPoint pb9 dscale dGAPointsLen)
-        --pictriangle10 = Color (makeColorI 249 214 184 255)  (getaPictureChekerPoint pb10 dscale dGAPointsLen)
-        --pictriangle11 = Color (makeColorI 135 67 8 255)     (getaPictureChekerPoint pb11 dscale dGAPointsLen)
-        --pictriangle12 = Color (makeColorI 249 214 184 255)  (getaPictureChekerPoint pb12 dscale dGAPointsLen)
-        --pictriangle13 = Color (makeColorI 135 67 8 255)     (getaPictureChekerPoint pb13 dscale dGAPointsLen)
-        --pictriangle14 = Color (makeColorI 249 214 184 255)  (getaPictureChekerPoint pb14 dscale dGAPointsLen)
-        --pictriangle15 = Color (makeColorI 135 67 8 255)     (getaPictureChekerPoint pb15 dscale dGAPointsLen)
-        --pictriangle16 = Color (makeColorI 249 214 184 255)  (getaPictureChekerPoint pb16 dscale dGAPointsLen)
-        --pictriangle17 = Color (makeColorI 135 67 8 255)     (getaPictureChekerPoint pb17 dscale dGAPointsLen)
-        --pictriangle18 = Color (makeColorI 249 214 184 255)  (getaPictureChekerPoint pb18 dscale dGAPointsLen)
-        --pictriangle19 = Color (makeColorI 135 67 8 255)     (getaPictureChekerPoint pb19 dscale dGAPointsLen)
-        --pictriangle20 = Color (makeColorI 249 214 184 255)  (getaPictureChekerPoint pb20 dscale dGAPointsLen)
-        --pictriangle21 = Color (makeColorI 135 67 8 255)     (getaPictureChekerPoint pb21 dscale dGAPointsLen)
-        --pictriangle22 = Color (makeColorI 249 214 184 255)  (getaPictureChekerPoint pb22 dscale dGAPointsLen)
-        --pictriangle23 = Color (makeColorI 135 67 8 255)     (getaPictureChekerPoint pb23 dscale dGAPointsLen)
-        --pictriangle24 = Color (makeColorI 249 214 184 255)  (getaPictureChekerPoint pb24 dscale dGAPointsLen)
-        
-        picboard = Color (makeColorI 91 58 41 255) (Polygon [(dscale * xo, dscale * yo), (dscale * xo, dscale * yt), (dscale * xt, dscale * yt), (dscale * xt, dscale * yo), (dscale * xo,dscale * yo)])
-        
-        picBar = Color (makeColorI 118 60 40 255) (Polygon [(dscale * (-100), dscale * yo), (dscale * 100, dscale * yo), (dscale * 100, dscale * yt), (dscale * (-100), dscale * yt), (dscale * (-100), dscale * yo)])
-        
-        picCheckPO1 = if takeCurPointChecker (takeCheckPlayer pone 1) == 1 then Translate (dscale * takeXCoordsCheckerPoint pb1) (dscale * (takeYCoordsCheckerPoint pb1 - (50 * fromIntegral (takePosPointChecker (takeCheckPlayer pone 1))))) (ThickCircle 10 80) else Translate (dscale * takeXCoordsCheckerPoint pb2) (dscale * takeYCoordsCheckerPoint pb2) (ThickCircle 40 40)
-        
-        allScreen = Pictures [picboard, picBar,  pictriangle1, pictriangle2, pictriangle3, pictriangle4, pictriangle5, pictriangle6, pictriangle7, pictriangle8, pictriangle9, pictriangle10, pictriangle11, pictriangle12, pictriangle13, pictriangle14, pictriangle15, pictriangle16, pictriangle17, pictriangle18, pictriangle19, pictriangle20, pictriangle21, pictriangle22, pictriangle23, pictriangle24, picCheckPO1]
+        allScreen = Pictures [picboard, picBar, picTriangles, Pictures picChkPlOne , Pictures picChkPlTwo]
 
 -- Обработчик событий
 handleGameEvent :: Event -> AppDataState -> AppDataState
-handleGameEvent _ state = state -- Ничего не делаем
+handleGameEvent (EventKey (MouseButton LeftButton) Down _ (xMouse, yMouse)) (AppDataState drawScale pOne pTwo (GameBoard (xO, yO, xT, yT) hGERedPointsBoard hGEWhitePointsBoard hGEPointsLen)) = state -- Ничего не делаем
+where
+    
 
 -- Обработчик кадра
 updateGameApp :: Float -> AppDataState -> AppDataState

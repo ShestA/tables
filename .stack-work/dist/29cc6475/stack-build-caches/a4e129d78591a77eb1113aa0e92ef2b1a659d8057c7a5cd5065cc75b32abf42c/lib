@@ -3,9 +3,9 @@ C:\Users\AlekseiShestakov\source\Haskell\VslPrj\ChangeLog.md:
   size: 46
   modtime: 1584509237
 C:\Users\AlekseiShestakov\source\Haskell\VslPrj\README.md:
-  hash: 2a1d1078a00d828e575b5f5f1192ea71c2a203e8d0c1cc6d18e59d02549a91e2
-  size: 9
-  modtime: 1584509237
+  hash: c1cf09dc43428218470cca2f1ad825c3d061811b4d0cbc01ac9067c31c898a3f
+  size: 29
+  modtime: 1584685059
 C:\Users\AlekseiShestakov\source\Haskell\VslPrj\src\Lib.hs:
   hash: 11d6d255cb397fa45980eb516ea685146565d9de2108c4eea356ea41db8364be
   size: 88
@@ -19,6 +19,6 @@ C:\Users\AlekseiShestakov\source\Haskell\VslPrj\package.yaml:
   size: 1163
   modtime: 1584509237
 C:\Users\AlekseiShestakov\source\Haskell\VslPrj\src\DemoIO.hs:
-  hash: cf3d7f7970325a35ad8d51cfd208cc275147f77bdc4cc64c603fd5ea510f6ce8
-  size: 13978
-  modtime: 1584684329
+  hash: ebaea9831f4ea8bee767204eb3082966f6a78bbfebfe7ca662a37f6e612a95e9
+  size: 18783
+  modtime: 1584704853

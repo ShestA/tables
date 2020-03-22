@@ -311,7 +311,7 @@ searchPoint :: Float -> Float -> DChcr -> DChPoint -> DChcr
 searchPoint spScaleX spScaleY spChcr spPoint = spnewChcr where
     spPntN = cpN spPoint
     spChN = chPnt spChcr
-    spnewChcr = spFound where
+    spnewChcr = DChcr True spPntN spPos spCoordX spCoordY False where
             spPntCoord = cpCoord spPoint
             spPntCoordX = acX spPntCoord
             spPntCoordY = acY spPntCoord
@@ -324,7 +324,6 @@ searchPoint spScaleX spScaleY spChcr spPoint = spnewChcr where
                 - ((spShift * fromIntegral(spPos - 1)) + (spScaleY * radiusChecker))
             else
                 ((spShift * fromIntegral(spPos - 1)) + (spScaleY * radiusChecker))
-            spFound = DChcr True spPntN spPos spCoordX spCoordY False
 
 -- Запуск пересчета координаты шашки
 recalcChecker :: Float -> Float -> [DChPoint] -> DChcr -> DChcr
@@ -380,6 +379,8 @@ handleGameEvent _ state = state
     
 -- Обработчик кадра
 updateGameApp :: Float -> DAppDtState -> DAppDtState
+updateGameApp _ ugaAppDS = ugaAppDS
+{-
 updateGameApp ugaTime ugaAppDS = newUGAppDS where
     ugaXScale = adsXScale ugaAppDS -- Float
     ugaYScale = adsYScale ugaAppDS --Float
@@ -399,7 +400,7 @@ updateGameApp ugaTime ugaAppDS = newUGAppDS where
     ugaNewPOne = DPInf ugaPOneColor (calcCheckers ugaXScale ugaYScale ugaChcrsPOne ugaBoard)
     ugaNewPTwo = DPInf ugaPTwoColor (calcCheckers ugaXScale ugaYScale ugaChcrsPTwo ugaBoard)
     newUGAppDS = DAppDtState ugaXScale ugaYScale ugaNewPOne ugaNewPTwo ugaBoard ugaAppState (ugaLastUpd + ugaTime)
-
+-}
 -- ******************************************************************
 -- Описание основной функции программы
 run :: IO ()
@@ -408,5 +409,7 @@ run = do
     let runScrW = fromIntegral (fst runScrSz)
     let runScrH = fromIntegral (snd runScrSz)
     let (runWScale, runHScale) = getScrScale (runScrW, runScrH)
-    let initGameState = DAppDtState runWScale runHScale playerOne playerTwo gameBoard POneMove 0
+    let setPlayerOne = DPInf (piColor playerOne) (calcCheckers 1 1 (piChcrs playerOne) gameBoard)
+    let setPlayerTwo = DPInf (piColor playerTwo) (calcCheckers 1 1 (piChcrs playerTwo) gameBoard)
+    let initGameState = DAppDtState runWScale runHScale setPlayerOne setPlayerTwo gameBoard POneMove 0
     play dispMode bgColor fps initGameState drawGameApp handleGameEvent updateGameApp

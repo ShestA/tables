@@ -27,7 +27,7 @@ source-repository head
 
 library
   exposed-modules:
-      DemoIO
+      TablesBoardGame
       Lib
   other-modules:
       Paths_VslPrj

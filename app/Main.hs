@@ -1,6 +1,6 @@
 module Main where
 
-import DemoIO (run)
+import TablesBoardGame (run)
 
 main :: IO ()
 main = run

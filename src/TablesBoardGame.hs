@@ -90,7 +90,9 @@ data DAppDtState = DAppDtState
         adsPTwo     :: DPInf,       -- Данные второго игрока
         adsBoard    :: DGBoard,     -- Данные игровой доски
         adsState    :: AppStates,   -- Состояние приложения
-        adsLastUpd  :: Float        -- Время с последнего обновления
+        adsLastUpd  :: Float,       -- Время с последнего обновления
+        adsDiceOne  :: Int,         -- Первая кость
+        adsDiceTwo  :: Int          -- Вторая кость
     }
 
 -- ******************************************************************
@@ -413,5 +415,5 @@ run = do
     let (runWScale, runHScale) = getScrScale (runScrW, runScrH)
     let setPlayerOne = DPInf (piColor playerOne) (calcCheckers (piChcrs playerOne) gameBoard)
     let setPlayerTwo = DPInf (piColor playerTwo) (calcCheckers (piChcrs playerTwo) gameBoard)
-    let initGameState = DAppDtState runWScale runHScale playerOne playerTwo gameBoard POneMove 0
+    let initGameState = DAppDtState runWScale runHScale playerOne playerTwo gameBoard POneMove 0 0 0
     play dispMode bgColor fps initGameState drawGameApp handleGameEvent updateGameApp

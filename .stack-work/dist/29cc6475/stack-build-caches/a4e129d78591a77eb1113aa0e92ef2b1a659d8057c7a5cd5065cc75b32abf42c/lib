@@ -1,24 +1,20 @@
-C:\Users\AlekseiShestakov\source\Haskell\VslPrj\ChangeLog.md:
-  hash: fcde94e9c74990e6bcf9a8b84e989e9e413125ae93b82d735c8446275643d840
-  size: 46
-  modtime: 1584509237
-C:\Users\AlekseiShestakov\source\Haskell\VslPrj\README.md:
-  hash: c1cf09dc43428218470cca2f1ad825c3d061811b4d0cbc01ac9067c31c898a3f
-  size: 29
-  modtime: 1584685059
-C:\Users\AlekseiShestakov\source\Haskell\VslPrj\src\Lib.hs:
-  hash: 11d6d255cb397fa45980eb516ea685146565d9de2108c4eea356ea41db8364be
-  size: 88
-  modtime: 1584509237
-C:\Users\AlekseiShestakov\source\Haskell\VslPrj\src\TablesBoardGame.hs:
-  hash: c153b2ed16c757aec853158f2e4383e2bcea5397b5a4db6385707d68dacb5747
-  size: 20054
-  modtime: 1584856465
-C:\Users\AlekseiShestakov\source\Haskell\VslPrj\VslPrj.cabal:
-  hash: 0fc98ffa5905c169e15fec10354c763718f357ae0d4854b7aa08c7de65ada4c2
-  size: 2569
-  modtime: 1584785542
-C:\Users\AlekseiShestakov\source\Haskell\VslPrj\package.yaml:
-  hash: d6800bb44032a5fb34570b461f9a6fc89c1668ac664f17cca8491d684a967717
-  size: 1163
-  modtime: 1584509237
+C:\Users\AlekseiShestakov\source\Haskell\tables\package.yaml:
+  hash: c14f0f81cae151f035175579e62433cf8c1449a3c60d79b8d42a9099b4b52516
+  size: 1211
+  modtime: 1585055676
+C:\Users\AlekseiShestakov\source\Haskell\tables\src\TablesBoardGame.hs:
+  hash: f32f981823ba373bb60ea0766d9de8850cf07db9d22589d60977c5b96b288ced
+  size: 18896
+  modtime: 1585056372
+C:\Users\AlekseiShestakov\source\Haskell\tables\README.md:
+  hash: 19d420c4d476bea03905fd5c931cc3a7cd6c7ede6d1345039ad5e12163e0fb36
+  size: 21
+  modtime: 1584857731
+C:\Users\AlekseiShestakov\source\Haskell\tables\ChangeLog.md:
+  hash: 2be496c2146d576c9d05547969884e8e8a2e3972c24e638385d2f9628d6e33d3
+  size: 49
+  modtime: 1584857572
+C:\Users\AlekseiShestakov\source\Haskell\tables\tables.cabal:
+  hash: 288a021a25807fa6264cbd8f4589df023e4e8056b0eace98336bbe41c31ee299
+  size: 2618
+  modtime: 1585055860

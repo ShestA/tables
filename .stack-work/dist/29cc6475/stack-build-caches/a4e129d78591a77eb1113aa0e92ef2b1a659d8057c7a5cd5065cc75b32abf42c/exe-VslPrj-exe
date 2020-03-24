@@ -1,20 +1,20 @@
-C:\Users\AlekseiShestakov\source\Haskell\VslPrj\ChangeLog.md:
-  hash: fcde94e9c74990e6bcf9a8b84e989e9e413125ae93b82d735c8446275643d840
-  size: 46
-  modtime: 1584509237
-C:\Users\AlekseiShestakov\source\Haskell\VslPrj\README.md:
-  hash: c1cf09dc43428218470cca2f1ad825c3d061811b4d0cbc01ac9067c31c898a3f
-  size: 29
-  modtime: 1584685059
-C:\Users\AlekseiShestakov\source\Haskell\VslPrj\app\Main.hs:
+C:\Users\AlekseiShestakov\source\Haskell\tables\package.yaml:
+  hash: ad7b19329f5aa65fad7020e1f29474a6fca69bc0eb89f74d42d723689440fec2
+  size: 1211
+  modtime: 1584857572
+C:\Users\AlekseiShestakov\source\Haskell\tables\app\Main.hs:
   hash: fa27e5cf1eba91bc252c23ce33322214a8bf97dcfcb1ecee338cb06270010641
   size: 80
-  modtime: 1584785502
-C:\Users\AlekseiShestakov\source\Haskell\VslPrj\VslPrj.cabal:
-  hash: 0fc98ffa5905c169e15fec10354c763718f357ae0d4854b7aa08c7de65ada4c2
-  size: 2569
-  modtime: 1584785542
-C:\Users\AlekseiShestakov\source\Haskell\VslPrj\package.yaml:
-  hash: d6800bb44032a5fb34570b461f9a6fc89c1668ac664f17cca8491d684a967717
-  size: 1163
-  modtime: 1584509237
+  modtime: 1584857572
+C:\Users\AlekseiShestakov\source\Haskell\tables\VslPrj.cabal:
+  hash: fefdc6c47adea287c5409664d265decd08a0028327859b51f74e544e71423afc
+  size: 2629
+  modtime: 1584857572
+C:\Users\AlekseiShestakov\source\Haskell\tables\README.md:
+  hash: 19d420c4d476bea03905fd5c931cc3a7cd6c7ede6d1345039ad5e12163e0fb36
+  size: 21
+  modtime: 1584857731
+C:\Users\AlekseiShestakov\source\Haskell\tables\ChangeLog.md:
+  hash: 2be496c2146d576c9d05547969884e8e8a2e3972c24e638385d2f9628d6e33d3
+  size: 49
+  modtime: 1584857572

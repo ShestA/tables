@@ -248,24 +248,24 @@ getScrScale (gsScrW, gsScrH) = (gsScaleX, gsScaleY) where
     gsScaleY =  gsScrH / baseScreenHeight
 
 -- Создание рисунка пункта доски без цвета
-createPointPic :: Float -> Float -> DChPoint ->Picture
-createPointPic cppScaleX cppScaleY cppPnt = cppPicPoint where
+createPointPic :: DChPoint ->Picture
+createPointPic cppPnt = cppPicPoint where
     cppPntCoord = cpCoord cppPnt                    -- AuxCoord Координаты начала пункта
     cppPntXCrd = acX cppPntCoord                    -- Float    Координата Х начала пункта
     cppPntYCrd = acY cppPntCoord                    -- Float    Координата У начала пункта
     cppPntDir = cpDirec cppPnt                      -- Bool     Направление пункта
     cppPicPoint = if cppPntDir then                 -- Picture  Создание изображения пункта
-        Polygon [(cppScaleX * (cppPntXCrd - pointWidth), cppScaleY * cppPntYCrd),
-                ((cppScaleX * cppPntXCrd),(cppScaleY * (cppPntYCrd - pointLen))),
-                (cppScaleX * (cppPntXCrd + pointWidth), cppScaleY * cppPntYCrd)]
+        Polygon [((cppPntXCrd - pointWidth), cppPntYCrd),
+                ((cppPntXCrd),((cppPntYCrd - pointLen))),
+                ((cppPntXCrd + pointWidth), cppPntYCrd)]
     else
-        Polygon [(cppScaleX * (cppPntXCrd - pointWidth), cppScaleY * cppPntYCrd),
-                ((cppScaleX * cppPntXCrd),(cppScaleY * (cppPntYCrd + pointLen))),
-                (cppScaleX * (cppPntXCrd + pointWidth), cppScaleY * cppPntYCrd)]
+        Polygon [((cppPntXCrd - pointWidth), cppPntYCrd),
+                ((cppPntXCrd),((cppPntYCrd + pointLen))),
+                ((cppPntXCrd + pointWidth), cppPntYCrd)]
 
 -- Создание полного рисунка доски
-createBoardPic :: Float -> Float -> DGBoard -> Picture
-createBoardPic cbScaleX cbScaleY cbBoard = cbPicBrd where
+createBoardPic :: DGBoard -> Picture
+createBoardPic cbBoard = cbPicBrd where
     cbBrdRect = gbBrdRect cbBoard       --AuxRect       Прямоугольник поля
     cbBrdTop = arTop cbBrdRect          --Float         Верхняя грань поля
     cbBrdLeft = arLeft cbBrdRect        --Float         Левая грань поля
@@ -279,36 +279,35 @@ createBoardPic cbScaleX cbScaleY cbBoard = cbPicBrd where
     cbWhtPtsLst = cplPnts cbWhtPtsBrd   --[DChPoint]    Список красных пунктов
     cbColor = gbBrdClr cbBoard          --Color         Цвет поля
     cbRdPics = map func cbRdPtsLst where                    -- Создание списка рисунков красных пунктов
-        func = createPointPic cbScaleX cbScaleY
+        func = createPointPic
     cbWhtPics = map func cbWhtPtsLst where                  -- Создание списка рисунков белых пунктов
-        func = createPointPic cbScaleX cbScaleY
+        func = createPointPic
     cbClRdPics = Color cbRdColor (Pictures cbRdPics)        -- Цветное изображение красных пунктов
     cbClWhtPics = Color cbWhtColor (Pictures cbWhtPics)     -- Цветное изображение белых пунктов
-    cbRectPic = Color cbColor (Polygon [(cbScaleX * cbBrdLeft, cbScaleY * cbBrdTop),
-        (cbScaleX * cbBrdRight, cbScaleY * cbBrdTop),
-        (cbScaleX * cbBrdRight, cbScaleY * cbBrdBottom),
-        (cbScaleX * cbBrdLeft, cbScaleY * cbBrdBottom)])    -- Изображение поля
+    cbRectPic = Color cbColor (Polygon [(cbBrdLeft, cbBrdTop),
+        (cbBrdRight, cbBrdTop),
+        (cbBrdRight, cbBrdBottom),
+        (cbBrdLeft, cbBrdBottom)])    -- Изображение поля
     cbPicBrd = Pictures[cbRectPic, cbClRdPics, cbClWhtPics] -- Итоговое изображение доски
 
 -- Создание рисунка шашки без цвета
-createOneCheckerPic :: Float -> Float -> DChcr -> Picture
-createOneCheckerPic cocScaleX cocScaleY cocChecker = cocPic where
+createOneCheckerPic :: DChcr -> Picture
+createOneCheckerPic cocChecker = cocPic where
     cocX = chX cocChecker
     cocY = chY cocChecker
-    cocRadScale = cocScaleX / cocScaleY
-    cocChckPic = ThickCircle (cocRadScale * radiusChecker) (cocRadScale * radiusChecker)
-    cocPic = Translate (cocScaleX * cocX) (cocScaleY * cocY) cocChckPic
+    cocChckPic = ThickCircle (radiusChecker) (radiusChecker)
+    cocPic = Translate (cocX) (cocY) cocChckPic
     
 -- Создание русунка шашек одного цвета
-createCheckersPic :: Float -> Float -> Color -> [DChcr] -> Picture
-createCheckersPic ccpScaleX ccpScaleY ccpColor ccpChckrs = ccpPic where
+createCheckersPic :: Color -> [DChcr] -> Picture
+createCheckersPic ccpColor ccpChckrs = ccpPic where
     ccpPicLst = map func ccpChckrs where
-        func = createOneCheckerPic ccpScaleX ccpScaleY
+        func = createOneCheckerPic
     ccpPic = Color ccpColor (Pictures ccpPicLst)
 
 -- Пересчет координаты шашки
-searchPoint :: Float -> Float -> DChcr -> DChPoint -> DChcr
-searchPoint spScaleX spScaleY spChcr spPoint = spnewChcr where
+searchPoint :: DChcr -> DChPoint -> DChcr
+searchPoint spChcr spPoint = spnewChcr where
     spPntN = cpN spPoint
     spChN = chPnt spChcr
     spnewChcr = DChcr True spPntN spPos spCoordX spCoordY False where
@@ -318,23 +317,23 @@ searchPoint spScaleX spScaleY spChcr spPoint = spnewChcr where
             spPntDir = cpDirec spPoint
             spPntNEl = cpNEl spPoint
             spPos = chPos spChcr
-            spShift = spScaleY * (pointLen / fromIntegral(spPntNEl))
+            spShift = (pointLen / fromIntegral(spPntNEl))
             spCoordX = spPntCoordX
             spCoordY = spPntCoordY + if spPntDir then
-                - ((spShift * fromIntegral(spPos - 1)) + (spScaleY * radiusChecker))
+                - ((spShift * fromIntegral(spPos - 1)) + (radiusChecker))
             else
-                ((spShift * fromIntegral(spPos - 1)) + (spScaleY * radiusChecker))
+                ((spShift * fromIntegral(spPos - 1)) + (radiusChecker))
 
 -- Запуск пересчета координаты шашки
-recalcChecker :: Float -> Float -> [DChPoint] -> DChcr -> DChcr
-recalcChecker rccScaleX rccScaleY rccPts rccChcr = rccnewChcr where
+recalcChecker :: [DChPoint] -> DChcr -> DChcr
+recalcChecker rccPts rccChcr = rccnewChcr where
     rccFlMv = chOnMv rccChcr
     rccFlInGame = chInGame rccChcr
     rccnewChcr = if rccFlMv then
         rccChcr -- Игрок двигает шашку
     else
         if rccFlInGame then
-            searchPoint rccScaleX rccScaleY rccChcr (rccPts !! (if even (chPnt rccChcr) then
+            searchPoint rccChcr (rccPts !! (if even (chPnt rccChcr) then
                 (div (chPnt rccChcr) 2) - 1
             else
                 (div (chPnt rccChcr) 2) + 12)) -- Шашка в пункте
@@ -342,20 +341,20 @@ recalcChecker rccScaleX rccScaleY rccPts rccChcr = rccnewChcr where
             rccChcr -- Шашка на баре
 
 -- Расчет координат шашек игрока 
-calcCheckers :: Float -> Float -> [DChcr] -> DGBoard -> [DChcr]
-calcCheckers ccScaleX ccScaleY ccChcks ccBoard = newccChcks where
+calcCheckers :: [DChcr] -> DGBoard -> [DChcr]
+calcCheckers ccChcks ccBoard = newccChcks where
     ccPntListRd = gbRdPntsBrd ccBoard
     ccPntListWht = gbWhtPntsBrd ccBoard
     ccPntList = (cplPnts ccPntListRd) ++ (cplPnts ccPntListWht)
     newccChcks = map func ccChcks where
-        func = recalcChecker ccScaleX ccScaleY ccPntList
+        func = recalcChecker ccPntList
 
 -- ******************************************************************
 -- Описание основных функций программы
 
 -- Функция ТОЛЬКО отрисовки всех изображений
 drawGameApp :: DAppDtState -> Picture
-drawGameApp dgaAppDS = Pictures[dgaAllPics] where
+drawGameApp dgaAppDS = scale dgaXScale dgaYScale dgaAllPics where
     dgaXScale = adsXScale dgaAppDS -- Float
     dgaYScale = adsYScale dgaAppDS --Float
     dgaPOne = adsPOne dgaAppDS --DPInf
@@ -367,15 +366,18 @@ drawGameApp dgaAppDS = Pictures[dgaAllPics] where
     dgaChcrsPOne = piChcrs dgaPOne --[DChcr]
     dgaChcrsPTwo = piChcrs dgaPTwo --[DChcr]
     
-    dgaPOnePic = createCheckersPic dgaXScale dgaYScale dgaPOneColor dgaChcrsPOne
-    dgaPTwoPic = createCheckersPic dgaXScale dgaYScale dgaPTwoColor dgaChcrsPTwo
-    dgaBoardPic = createBoardPic dgaXScale dgaYScale dgaBoard
+    dgaPOnePic = createCheckersPic dgaPOneColor dgaChcrsPOne
+    dgaPTwoPic = createCheckersPic dgaPTwoColor dgaChcrsPTwo
+    dgaBoardPic = createBoardPic dgaBoard
     
     dgaAllPics = Pictures [dgaBoardPic, dgaPOnePic, dgaPTwoPic]
 
 -- Обработчик событий
 handleGameEvent :: Event -> DAppDtState -> DAppDtState
-handleGameEvent _ state = state
+handleGameEvent (EventKey (MouseButton LeftButton) Down _ (hgeMouseX, hgeMouseY)) dgaState = dgaState
+handleGameEvent (EventKey (MouseButton LeftButton) Up _ (hgeMouseX, hgeMouseY)) dgaState = dgaState
+handleGameEvent (EventKey (SpecialKey KeySpace) Down _ _) dgaState = dgaState
+handleGameEvent _ dgaState = dgaState
     
 -- Обработчик кадра
 updateGameApp :: Float -> DAppDtState -> DAppDtState
@@ -409,7 +411,7 @@ run = do
     let runScrW = fromIntegral (fst runScrSz)
     let runScrH = fromIntegral (snd runScrSz)
     let (runWScale, runHScale) = getScrScale (runScrW, runScrH)
-    let setPlayerOne = DPInf (piColor playerOne) (calcCheckers 1 1 (piChcrs playerOne) gameBoard)
-    let setPlayerTwo = DPInf (piColor playerTwo) (calcCheckers 1 1 (piChcrs playerTwo) gameBoard)
-    let initGameState = DAppDtState runWScale runHScale setPlayerOne setPlayerTwo gameBoard POneMove 0
+    let setPlayerOne = DPInf (piColor playerOne) (calcCheckers (piChcrs playerOne) gameBoard)
+    let setPlayerTwo = DPInf (piColor playerTwo) (calcCheckers (piChcrs playerTwo) gameBoard)
+    let initGameState = DAppDtState runWScale runHScale playerOne playerTwo gameBoard POneMove 0
     play dispMode bgColor fps initGameState drawGameApp handleGameEvent updateGameApp

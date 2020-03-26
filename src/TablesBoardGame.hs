@@ -120,7 +120,7 @@ fps = 75
 
 -- Цвет первого игрока
 pOneColor :: Color
-pOneColor = makeColorI 215 215 215 255
+pOneColor = makeColorI 210 177 152 255
 
 -- Цвет второго игрока
 pTwoColor :: Color
@@ -230,7 +230,7 @@ pointLen = 400
 
 -- Ширина пункта
 pointWidth :: Float
-pointWidth = 80
+pointWidth = 50
 
 -- Радиус шашки
 radiusChecker :: Float
@@ -248,6 +248,20 @@ getScrScale :: (Float, Float) -> (Float, Float)
 getScrScale (gsScrW, gsScrH) = (gsScaleX, gsScaleY) where
     gsScaleX =  gsScrW / baseScreenWidth
     gsScaleY =  gsScrH / baseScreenHeight
+
+ -- Проверка нажатия кнопки на шашке
+onCheckerClick :: DPInf -> (Float, Float) -> Bool
+onCheckerClick occPlayer (occX, occY) = occFlag where
+    occCheckers = piChcrs occPlayer 
+    occFlag = any (==True) (map func occCheckers) where
+            func = occProbe occX occY where
+                occProbe :: Float -> Float -> DChcr -> Bool
+                occProbe tstX tstY (DChcr _ _ _ prbX prbY _) =  tstFl where
+                    tstFl = if ( (abs(tstX - prbX) < radiusChecker) && (abs(tstY - prbY) < radiusChecker) ) -- РАДИУС НЕ МАСШТАБИРУЕМ!!!!
+                    then
+                        True
+                     else
+                        False
 
 -- Создание рисунка пункта доски без цвета
 createPointPic :: DChPoint ->Picture
@@ -297,7 +311,7 @@ createOneCheckerPic :: DChcr -> Picture
 createOneCheckerPic cocChecker = cocPic where
     cocX = chX cocChecker
     cocY = chY cocChecker
-    cocChckPic = ThickCircle (radiusChecker) (radiusChecker)
+    cocChckPic = ThickCircle (radiusChecker) (30)
     cocPic = Translate (cocX) (cocY) cocChckPic
     
 -- Создание русунка шашек одного цвета
@@ -307,24 +321,46 @@ createCheckersPic ccpColor ccpChckrs = ccpPic where
         func = createOneCheckerPic
     ccpPic = Color ccpColor (Pictures ccpPicLst)
 
+-- Поиск индекса шашки по координатам
+lookupChecker :: (Float, Float) -> [DChcr] -> Int -> Int
+lookupChecker _ [ ] lcLen = lcLen  -- Нужной шашки нет
+lookupChecker (lcX, lcY) ( (DChcr _ _ _ lcCX lcCY _) : lcOthers ) lcItr 
+    | ((abs(lcX - lcCX) < radiusChecker) && (abs(lcY - lcCY) < radiusChecker)) = lcItr -- Шашка найдена
+    | otherwise = lookupChecker (lcX, lcY) lcOthers (lcItr + 1) -- Переходим к следующей шашке
+
+-- Заменить шашку в листе
+swapChecker :: Bool -> [DChcr] -> Int -> DChcr -> [DChcr]
+swapChecker False x _ _ = x
+swapChecker True scOldList scCur scNewEl = scNewList where
+    scFstPart= fst (splitAt scCur scOldList)
+    scSndPart= tail (snd (splitAt scCur scOldList))
+    scNewList = scFstPart ++ [scNewEl] ++ scSndPart
+
 -- Пересчет координаты шашки
 searchPoint :: DChcr -> DChPoint -> DChcr
 searchPoint spChcr spPoint = spnewChcr where
     spPntN = cpN spPoint
     spChN = chPnt spChcr
-    spnewChcr = DChcr True spPntN spPos spCoordX spCoordY False where
-            spPntCoord = cpCoord spPoint
-            spPntCoordX = acX spPntCoord
-            spPntCoordY = acY spPntCoord
-            spPntDir = cpDirec spPoint
-            spPntNEl = cpNEl spPoint
-            spPos = chPos spChcr
-            spShift = (pointLen / fromIntegral(spPntNEl))
-            spCoordX = spPntCoordX
-            spCoordY = spPntCoordY + if spPntDir then
-                - ((spShift * fromIntegral(spPos - 1)) + (radiusChecker))
-            else
-                ((spShift * fromIntegral(spPos - 1)) + (radiusChecker))
+    spPntCoord = cpCoord spPoint
+    spPntCoordX = acX spPntCoord
+    spPntCoordY = acY spPntCoord
+    spPntDir = cpDirec spPoint
+    spPntNEl = cpNEl spPoint
+    spPos = chPos spChcr
+    spShift = (pointLen / fromIntegral(spPntNEl))
+    spCoordX = spPntCoordX
+    spCoordY = spPntCoordY   + if spPntDir then
+        - ((spShift * fromIntegral(spPos - 1)) + (radiusChecker))
+    else
+        ((spShift * fromIntegral(spPos - 1)) + (radiusChecker))
+    spnewChcr = DChcr True spChN spPos spCoordX spCoordY False
+
+-- Поиск индекса пункта по номеру
+lookupPoint :: Int -> [DChPoint] -> Int -> Int
+lookupPoint _ [ ] lpLen = lpLen  -- Нужного пункта нет
+lookupPoint lpPnt ( (DChPoint _ _ _ lpNPnt) : lpOthers ) lpItr 
+    | lpPnt == lpNPnt = lpItr -- Пункт найден
+    | otherwise = lookupPoint lpPnt lpOthers (lpItr + 1) -- Переходим к следующему пункту
 
 -- Запуск пересчета координаты шашки
 recalcChecker :: [DChPoint] -> DChcr -> DChcr
@@ -335,20 +371,17 @@ recalcChecker rccPts rccChcr = rccnewChcr where
         rccChcr -- Игрок двигает шашку
     else
         if rccFlInGame then
-            searchPoint rccChcr (rccPts !! (if even (chPnt rccChcr) then
-                (div (chPnt rccChcr) 2) - 1
-            else
-                (div (chPnt rccChcr) 2) + 12)) -- Шашка в пункте
+            searchPoint rccChcr (rccPts !! (lookupPoint (chPnt rccChcr) rccPts 0))
         else
             rccChcr -- Шашка на баре
 
 -- Расчет координат шашек игрока 
 calcCheckers :: [DChcr] -> DGBoard -> [DChcr]
-calcCheckers ccChcks ccBoard = newccChcks where
+calcCheckers ccChcks ccBoard = ccNewChcks where
     ccPntListRd = gbRdPntsBrd ccBoard
     ccPntListWht = gbWhtPntsBrd ccBoard
     ccPntList = (cplPnts ccPntListRd) ++ (cplPnts ccPntListWht)
-    newccChcks = map func ccChcks where
+    ccNewChcks = map func ccChcks where
         func = recalcChecker ccPntList
 
 -- ******************************************************************
@@ -373,14 +406,39 @@ drawGameApp dgaAppDS = scale dgaXScale dgaYScale dgaAllPics where
     dgaBoardPic = createBoardPic dgaBoard
     
     dgaAllPics = Pictures [dgaBoardPic, dgaPOnePic, dgaPTwoPic]
-
+    
 -- Обработчик событий
 handleGameEvent :: Event -> DAppDtState -> DAppDtState
-handleGameEvent (EventKey (MouseButton LeftButton) Down _ (hgeMouseX, hgeMouseY)) dgaState = dgaState
-handleGameEvent (EventKey (MouseButton LeftButton) Up _ (hgeMouseX, hgeMouseY)) dgaState = dgaState
+handleGameEvent (EventKey (MouseButton LeftButton) Down _ (hgeMouseX, hgeMouseY)) dgaState = dgaNewState where
+    hgeCheckersPOne = piChcrs (adsPOne dgaState)
+    hgeItr = lookupChecker (hgeMouseX, hgeMouseY) hgeCheckersPOne 0
+    hgeMvChk = hgeCheckersPOne !! hgeItr
+    hgeNewChk = DChcr (chInGame hgeMvChk) (chPnt hgeMvChk) (chPos hgeMvChk) hgeMouseX hgeMouseY True
+    hgeNewChckersPO = swapChecker ((hgeItr >= 0) && (hgeItr < length hgeCheckersPOne)) hgeCheckersPOne hgeItr hgeNewChk
+    hgeNewPOne = DPInf (piColor (adsPOne dgaState)) hgeNewChckersPO
+    dgaNewState = DAppDtState (adsXScale dgaState) (adsYScale dgaState) hgeNewPOne playerTwo gameBoard POneMove 0 0 0
+handleGameEvent (EventMotion (hgeMouseX, hgeMouseY)) dgaState = dgaNewState where
+    hgeCheckersPOne = piChcrs (adsPOne dgaState)
+    hgeItr = lookupChecker (hgeMouseX, hgeMouseY) hgeCheckersPOne 0
+    hgeMvChk = hgeCheckersPOne !! hgeItr
+    hgeMvFlChk = chOnMv hgeMvChk
+    hgeNewChk = DChcr (chInGame hgeMvChk) (chPnt hgeMvChk) (chPos hgeMvChk) hgeMouseX hgeMouseY hgeMvFlChk
+    hgeNewChckersPO = swapChecker ((hgeItr >= 0) && (hgeItr < length hgeCheckersPOne) && hgeMvFlChk) hgeCheckersPOne hgeItr hgeNewChk
+    hgeNewPOne = DPInf (piColor (adsPOne dgaState)) hgeNewChckersPO
+    dgaNewState = DAppDtState (adsXScale dgaState) (adsYScale dgaState) hgeNewPOne playerTwo gameBoard POneMove 0 0 0
+handleGameEvent (EventKey (MouseButton LeftButton) Up _ (hgeMouseX, hgeMouseY)) dgaState = dgaNewState where
+    hgeCheckersPOne = piChcrs (adsPOne dgaState)
+    hgeItr = lookupChecker (hgeMouseX, hgeMouseY) hgeCheckersPOne 0
+    hgeMvChk = hgeCheckersPOne !! hgeItr
+    -- Здесь необходимо проверить есть ли рядом пункт проверить можно ли туда поместить шашку и пересчитать координату шашки для пункта если надо
+    hgeNewChk = DChcr (chInGame hgeMvChk) (chPnt hgeMvChk) (chPos hgeMvChk) (chX hgeMvChk) (chY hgeMvChk) False
+    hgeNewChckersPO = swapChecker ((hgeItr >= 0) && (hgeItr < length hgeCheckersPOne)) hgeCheckersPOne hgeItr hgeNewChk
+    hgeNewChckersPO' = calcCheckers hgeNewChckersPO (adsBoard dgaState)
+    hgeNewPOne = DPInf (piColor (adsPOne dgaState)) hgeNewChckersPO'
+    dgaNewState = DAppDtState (adsXScale dgaState) (adsYScale dgaState) hgeNewPOne playerTwo gameBoard POneMove 0 0 0
 handleGameEvent (EventKey (SpecialKey KeySpace) Down _ _) dgaState = dgaState
 handleGameEvent _ dgaState = dgaState
-    
+  
 -- Обработчик кадра
 updateGameApp :: Float -> DAppDtState -> DAppDtState
 updateGameApp _ ugaAppDS = ugaAppDS
@@ -413,7 +471,7 @@ run = do
     let runScrW = fromIntegral (fst runScrSz)
     let runScrH = fromIntegral (snd runScrSz)
     let (runWScale, runHScale) = getScrScale (runScrW, runScrH)
-    let setPlayerOne = DPInf (piColor playerOne) (calcCheckers (piChcrs playerOne) gameBoard)
-    let setPlayerTwo = DPInf (piColor playerTwo) (calcCheckers (piChcrs playerTwo) gameBoard)
+    --let setPlayerOne = DPInf (piColor playerOne) (calcCheckers (piChcrs playerOne) gameBoard)
+    --let setPlayerTwo = DPInf (piColor playerTwo) (calcCheckers (piChcrs playerTwo) gameBoard)
     let initGameState = DAppDtState runWScale runHScale playerOne playerTwo gameBoard POneMove 0 0 0
     play dispMode bgColor fps initGameState drawGameApp handleGameEvent updateGameApp

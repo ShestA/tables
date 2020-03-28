@@ -7,7 +7,7 @@ cabal-version: 1.12
 -- hash: dc583cb8d1c264fd2426778a3bdc70df21bde76917007f4991caeb87be8d44d6
 
 name:           tables
-version:        0.1.0.0
+version:        0.2.0.1
 description:    Please see the README on GitHub at <https://github.com/githubuser/tables#readme>
 homepage:       https://github.com/githubuser/tables#readme
 bug-reports:    https://github.com/githubuser/tables/issues
@@ -29,7 +29,9 @@ library
   exposed-modules:
       TablesBoardGame
   other-modules:
-      Paths_tables
+      AbstractData
+      Constants
+      AdditionalFunction
   hs-source-dirs:
       src
   build-depends:
@@ -65,17 +67,4 @@ executable tables-exe
   build-depends:       tuple            >= 0.3.0.2
   build-depends:       array            >= 0.5.4.0
   build-depends:       vector           >= 0.12.1.2
-  default-language: Haskell2010
-
-test-suite tables-test
-  type: exitcode-stdio-1.0
-  main-is: Spec.hs
-  other-modules:
-      Paths_tables
-  hs-source-dirs:
-      test
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
-  build-depends:
-      tables
-    , base >=4.7 && <5
   default-language: Haskell2010

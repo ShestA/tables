@@ -12,142 +12,105 @@ import Constants
 -- Описание вспомогательных функций программы
 
 -- Получение масштабного коэффициента
-getScrScale :: (Float, Float) -> (Float, Float)
-getScrScale (gsScrW, gsScrH) = (gsScaleX, gsScaleY) where
-    gsScaleX =  gsScrW / baseScreenWidth
-    gsScaleY =  gsScrH / baseScreenHeight
-
- -- Проверка нажатия кнопки на шашке
-onCheckerClick :: DPInf -> (Float, Float) -> Bool
-onCheckerClick occPlayer (occX, occY) = occFlag where
-    occCheckers = piChcrs occPlayer 
-    occFlag = any (==True) (map func occCheckers) where
-            func = occProbe occX occY where
-                occProbe :: Float -> Float -> DChcr -> Bool
-                occProbe tstX tstY (DChcr _ _ _ prbX prbY _) =  tstFl where
-                    tstFl = if ( (abs(tstX - prbX) < radiusChecker) && (abs(tstY - prbY) < radiusChecker) ) -- РАДИУС НЕ МАСШТАБИРУЕМ!!!!
-                    then
-                        True
-                     else
-                        False
-
--- Создание рисунка пункта доски без цвета
-createPointPic :: DChPoint ->Picture
-createPointPic cppPnt = cppPicPoint where
-    cppPntCoord = cpCoord cppPnt                    -- AuxCoord Координаты начала пункта
-    cppPntXCrd = acX cppPntCoord                    -- Float    Координата Х начала пункта
-    cppPntYCrd = acY cppPntCoord                    -- Float    Координата У начала пункта
-    cppPntDir = cpDirec cppPnt                      -- Bool     Направление пункта
-    cppPicPoint = if cppPntDir then                 -- Picture  Создание изображения пункта
-        Polygon [((cppPntXCrd - pointWidth), cppPntYCrd),
-                ((cppPntXCrd),((cppPntYCrd - pointLen))),
-                ((cppPntXCrd + pointWidth), cppPntYCrd)]
-    else
-        Polygon [((cppPntXCrd - pointWidth), cppPntYCrd),
-                ((cppPntXCrd),((cppPntYCrd + pointLen))),
-                ((cppPntXCrd + pointWidth), cppPntYCrd)]
-
--- Создание полного рисунка доски
-createBoardPic :: DGBoard -> Picture
-createBoardPic cbBoard = cbPicBrd where
-    cbBrdRect = gbBrdRect cbBoard       --AuxRect       Прямоугольник поля
-    cbBrdTop = arTop cbBrdRect          --Float         Верхняя грань поля
-    cbBrdLeft = arLeft cbBrdRect        --Float         Левая грань поля
-    cbBrdRight = arRight cbBrdRect      --Float         Правая грань поля
-    cbBrdBottom = arBottom cbBrdRect    --Float         Нижняя грань поля
-    cbRdPtsBrd = gbRdPntsBrd cbBoard    --DChPntList    Структура красных пунктов
-    cbRdColor = cplColor cbRdPtsBrd     --Color         Цвет красных пунктов
-    cbWhtPtsBrd = gbWhtPntsBrd cbBoard  --DChPntList    Структура белых пунктов
-    cbWhtColor = cplColor cbWhtPtsBrd   --Color         Цвет белых пунктов
-    cbRdPtsLst = cplPnts cbRdPtsBrd     --[DChPoint]    Список красных пунктов
-    cbWhtPtsLst = cplPnts cbWhtPtsBrd   --[DChPoint]    Список красных пунктов
-    cbColor = gbBrdClr cbBoard          --Color         Цвет поля
-    cbRdPics = map func cbRdPtsLst where                    -- Создание списка рисунков красных пунктов
-        func = createPointPic
-    cbWhtPics = map func cbWhtPtsLst where                  -- Создание списка рисунков белых пунктов
-        func = createPointPic
-    cbClRdPics = Color cbRdColor (Pictures cbRdPics)        -- Цветное изображение красных пунктов
-    cbClWhtPics = Color cbWhtColor (Pictures cbWhtPics)     -- Цветное изображение белых пунктов
-    cbRectPic = Color cbColor (Polygon [(cbBrdLeft, cbBrdTop),
-        (cbBrdRight, cbBrdTop),
-        (cbBrdRight, cbBrdBottom),
-        (cbBrdLeft, cbBrdBottom)])    -- Изображение поля
-    cbPicBrd = Pictures[cbRectPic, cbClRdPics, cbClWhtPics] -- Итоговое изображение доски
-
--- Создание рисунка шашки без цвета
-createOneCheckerPic :: DChcr -> Picture
-createOneCheckerPic cocChecker = cocPic where
-    cocX = chX cocChecker
-    cocY = chY cocChecker
-    cocChckPic = ThickCircle (radiusChecker) (30)
-    cocPic = Translate (cocX) (cocY) cocChckPic
+getScreenScale :: (Float, Float) -> (Float, Float)
+getScreenScale (gsScrWidth, gsScrHeight) = (gsScaleX, gsScaleY) where
+    gsScaleX =  gsScrWidth / baseScreenWidth
+    gsScaleY =  gsScrHeight / baseScreenHeight
     
--- Создание русунка шашек одного цвета
-createCheckersPic :: Color -> [DChcr] -> Picture
-createCheckersPic ccpColor ccpChckrs = ccpPic where
-    ccpPicLst = map func ccpChckrs where
-        func = createOneCheckerPic
-    ccpPic = Color ccpColor (Pictures ccpPicLst)
+-- Отрисовка полигона
+getPolygonPicture :: AuxPolygon -> Picture
+getPolygonPicture (gppCoordinates, gppColor) = result where
+    result = Color gppColor (Polygon gppCoordinates)
 
--- Поиск индекса шашки по координатам
-lookupChecker :: (Float, Float) -> [DChcr] -> Int -> Int
-lookupChecker _ [ ] lcLen = lcLen  -- Нужной шашки нет
-lookupChecker (lcX, lcY) ( (DChcr _ _ _ lcCX lcCY _) : lcOthers ) lcItr 
-    | ((abs(lcX - lcCX) < radiusChecker) && (abs(lcY - lcCY) < radiusChecker)) = lcItr -- Шашка найдена
-    | otherwise = lookupChecker (lcX, lcY) lcOthers (lcItr + 1) -- Переходим к следующей шашке
+-- Получить список X координат
+getCoordinatesX :: [(Float, Float)] -> [Float]
+getCoordinatesX list = [fst x | x <- list]
 
--- Заменить шашку в листе
-swapChecker :: Bool -> [DChcr] -> Int -> DChcr -> [DChcr]
-swapChecker False x _ _ = x
-swapChecker True scOldList scCur scNewEl = scNewList where
-    scFstPart= fst (splitAt scCur scOldList)
-    scSndPart= tail (snd (splitAt scCur scOldList))
-    scNewList = scFstPart ++ [scNewEl] ++ scSndPart
+-- Получить список Y координат
+getCoordinatesY :: [(Float, Float)] -> [Float]
+getCoordinatesY list = [snd x | x <- list]
 
--- Пересчет координаты шашки
-searchPoint :: DChcr -> DChPoint -> DChcr
-searchPoint spChcr spPoint = spnewChcr where
-    spPntN = cpN spPoint
-    spChN = chPnt spChcr
-    spPntCoord = cpCoord spPoint
-    spPntCoordX = acX spPntCoord
-    spPntCoordY = acY spPntCoord
-    spPntDir = cpDirec spPoint
-    spPntNEl = cpNEl spPoint
-    spPos = chPos spChcr
-    spShift = (pointLen / fromIntegral(spPntNEl))
-    spCoordX = spPntCoordX
-    spCoordY = spPntCoordY   + if spPntDir then
-        - ((spShift * fromIntegral(spPos - 1)) + (radiusChecker))
-    else
-        ((spShift * fromIntegral(spPos - 1)) + (radiusChecker))
-    spnewChcr = DChcr True spChN spPos spCoordX spCoordY False
+-- Минимальный X полигона
+minX :: [(Float, Float)] -> Float
+minX mxCoords = result where
+    result = minimum $ getCoordinatesX mxCoords
 
--- Поиск индекса пункта по номеру
-lookupPoint :: Int -> [DChPoint] -> Int -> Int
-lookupPoint _ [ ] lpLen = lpLen  -- Нужного пункта нет
-lookupPoint lpPnt ( (DChPoint _ _ _ lpNPnt) : lpOthers ) lpItr 
-    | lpPnt == lpNPnt = lpItr -- Пункт найден
-    | otherwise = lookupPoint lpPnt lpOthers (lpItr + 1) -- Переходим к следующему пункту
+-- Максимальный X полигона
+maxX :: [(Float, Float)] -> Float
+maxX mxCoords = result where
+    result = maximum $ getCoordinatesX mxCoords
+    
+-- Минимальный Y полигона
+minY :: [(Float, Float)] -> Float
+minY myCoords = result where
+    result = minimum $ getCoordinatesY myCoords
 
--- Запуск пересчета координаты шашки
-recalcChecker :: [DChPoint] -> DChcr -> DChcr
-recalcChecker rccPts rccChcr = rccnewChcr where
-    rccFlMv = chOnMv rccChcr
-    rccFlInGame = chInGame rccChcr
-    rccnewChcr = if rccFlMv then
-        rccChcr -- Игрок двигает шашку
-    else
-        if rccFlInGame then
-            searchPoint rccChcr (rccPts !! (lookupPoint (chPnt rccChcr) rccPts 0))
-        else
-            rccChcr -- Шашка на баре
+-- Максимальный Y полигона
+maxY :: [(Float, Float)] -> Float
+maxY myCoords = result where
+    result = maximum $ getCoordinatesY myCoords
 
--- Расчет координат шашек игрока 
-calcCheckers :: [DChcr] -> DGBoard -> [DChcr]
-calcCheckers ccChcks ccBoard = ccNewChcks where
-    ccPntListRd = gbRdPntsBrd ccBoard
-    ccPntListWht = gbWhtPntsBrd ccBoard
-    ccPntList = (cplPnts ccPntListRd) ++ (cplPnts ccPntListWht)
-    ccNewChcks = map func ccChcks where
-        func = recalcChecker ccPntList
+-- Геометрический центр полигона
+centerOfPolygon :: [(Float, Float)] -> (Float, Float)
+centerOfPolygon copCoords = (resultX, resultY) where
+    resultX = ((maxX copCoords) + (minX copCoords)) / 2
+    resultY = ((maxY copCoords) + (minY copCoords)) / 2
+
+-- Масимальная длина полигона по X
+maxLengthX :: [(Float, Float)] -> Float
+maxLengthX mlxCoord = (maxX mlxCoord) - (minX mlxCoord)
+
+-- Масимальная длина полигона по Y
+maxLengthY :: [(Float, Float)] -> Float
+maxLengthY mlyCoord = (maxY mlyCoord) - (minY mlyCoord)
+
+-- Координаты внутри полигона?
+isInPolygon :: (Float, Float) -> AuxPolygon -> Bool
+isInPolygon (iipX, iipY) (iipPolygon, _) = result where
+    result =    iipX >= (minX iipPolygon) &&
+                iipX <= (maxX iipPolygon) &&
+                iipY >= (minY iipPolygon) &&
+                iipY <= (maxY iipPolygon)
+
+-- Перемещение координат
+translateCoordinate :: (Float, Float) -> (Float, Float) -> (Float, Float)
+translateCoordinate (tcDX, tcDY) (tcX, tcY) = (tcResultX, tcResultY) where
+    tcResultX = tcX + tcDX
+    tcResultY = tcY + tcDY
+
+-- Перемещение полигона
+translatePolygon :: AuxPolygon -> (Float, Float) -> AuxPolygon
+translatePolygon (tpCoords, tpColor) (tpX, tpY) = (tpNewCoords, tpColor) where
+    (tpCenterX, tpCenterY) = centerOfPolygon tpCoords
+    tpDX = tpX - tpCenterX
+    tpDY = tpY - tpCenterY
+    tpNewCoords = map (translateCoordinate (tpDX, tpDY)) (tpCoords)
+
+-- Отрисовка пункта с шашками
+pointAndCheckersPicture :: TablesPoint -> Picture
+pointAndCheckersPicture pcpPoint = result where
+    pcpPointPicture = getPolygonPicture (tpPolygon pcpPoint)
+    pcpCheckersPicture = map getPolygonPicture (map chPolygon (tpCheckers pcpPoint))
+    result = Pictures ([pcpPointPicture] ++ pcpCheckersPicture)
+
+-- Отрисовка пунктов с шашками
+getPointsPicture :: [TablesPoint] -> Picture
+getPointsPicture gppPoints = result where
+    result = Pictures (map pointAndCheckersPicture gppPoints) 
+
+-- Отрисовка бара с шашками
+getBarPicture :: TablesBar -> Picture
+getBarPicture gbpBar = result where
+    gbpBarPicture = getPolygonPicture (tbPolygon gbpBar)
+    gbpCheckersPicture = map getPolygonPicture (map chPolygon (tbCheckers gbpBar))
+    result = Pictures ([gbpBarPicture] ++ gbpCheckersPicture)
+
+-- Отрисовка полного стола
+getGamePicture :: GameBoard -> Picture
+getGamePicture ggpBoard = result where
+    ggpBoardPicture     = getPolygonPicture (gbBoardPolygon ggpBoard)
+    ggpPointsPicture    = getPointsPicture (gbPoints ggpBoard)
+    ggpBarPicture       = getBarPicture (gbBar ggpBoard)
+    result   =   Pictures [ggpBoardPicture, ggpPointsPicture, ggpBarPicture]
+
+-- Продолжение следует

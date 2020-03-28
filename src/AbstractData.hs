@@ -11,85 +11,53 @@ import Graphics.Gloss.Interface.Environment
 -- ******************************************************************
 -- Вспомогательные данные
 
--- Координата
-data AuxCoord = AuxCoord
-    {
-        acX :: Float,
-        acY :: Float
-    }
-
--- Прямоугольник
-data AuxRect = AuxRect
-    {
-        arLeft      :: Float,
-        arTop       :: Float,
-        arRight     :: Float,
-        arBottom    :: Float
-    }
+-- Полигон
+type AuxPolygon = ([(Float, Float)], Color)
 -- ******************************************************************
 -- Данные абстракции приложения
 
 -- Сотстояния приложения
-data AppStates = 
-                POneMove                    -- Ход игрока 1
-                | PTwoMove                  -- Ход игрока 2
-                | POneRoll                  -- Бросок костей игрока 1
-                | PTwoRoll  deriving (Enum) -- Бросок костей игрока 2
-                
--- Пункт (Data Checker-Point)
-data DChPoint = DChPoint
+data ApplicationState = 
+                PlayerOneMove                    -- Ход игрока 1
+                | PlayerTwoMove                  -- Ход игрока 2
+                | PlayerOneRoll                  -- Бросок костей игрока 1
+                | PlayerTwoRoll  deriving (Enum) -- Бросок костей игрока 2
+-- Игроки
+data PlayerName =
+                PlayerOne
+                | PlayerTwo deriving (Enum)
+-- Шашка
+data Checker = Checker
     {
-        cpCoord :: AuxCoord,    -- Координата начала пункта в окне
-        cpDirec :: Bool,        -- Направление пункта - вверх (True) или вниз (False)
-        cpNEl   :: Int,         -- Текущее количество шашек в пункте
-        cpN     :: Int          -- Номер пункта
+        chPlayer        :: PlayerName,      -- Игрок, которому принадлежит шашка
+        chPolygon       :: AuxPolygon       -- Полигон шашки
     }
-
--- Список пунктов (Data Checker-Point List)
-data DChPntList = DChPntList
+-- Пункт
+data TablesPoint = TablesPoint
     {
-        cplPnts     :: [DChPoint],  -- Список пунктов
-        cplColor    :: Color        -- Цвет пунктов
+        tpNumber            :: Int,         -- Номер пункта
+        tpCheckers          :: [Checker],   -- Шашки находящиеся в пункте
+        tpPolygon           :: AuxPolygon   -- Полигон пункта
     }
-
--- Игровая доска (Data Game Board)
-data DGBoard = DGBoard
+-- Бар
+data TablesBar = TablesBar
     {
-        gbBrdRect       :: AuxRect,     -- Прямоугольник доски
-        gbBrdClr        :: Color,       -- Цвет прямоугольника
-        gbRdPntsBrd     :: DChPntList,  -- Красные пункты на доске
-        gbWhtPntsBrd    :: DChPntList,  -- Белые пункты на доске
-        gbPtsLen        :: Float        -- Длина пунктов на доске (Не используется)
+        tbCheckers  :: [Checker],   -- Шашки находящиеся на игровом баре
+        tbPolygon   :: AuxPolygon   -- Полигон бара
     }
-
--- Шашка (Data Checker)
-data DChcr = DChcr
+-- Игровая доска
+data GameBoard = GameBoard
     {
-        chInGame    :: Bool,    -- Шашка на доске (True) или на баре (False)?
-        chPnt       :: Int,     -- Текущий номер пункта (Нумерация внутренняя, не игровая)
-        chPos       :: Int,     -- Позиция в пункте
-        chX         :: Float,   -- Координта Х в СК окна
-        chY         :: Float,   -- Координата У в СК окна
-        chOnMv      :: Bool     -- Шашку двигает игрок?
+        gbBoardPolygon  :: AuxPolygon,      -- Полигон игровой доски
+        gbPoints        :: [TablesPoint],   -- Пункты на доске
+        gbBar           :: TablesBar,       -- Шашки находящиеся на игровом баре
+        gbChecker       :: Checker          -- Перемещаемая шашка
     }
-
--- Игрок (Data Player Info)
-data DPInf = DPInf
+-- Игровое положение
+data ApplicationData = ApplicationData
     {
-        piColor :: Color,   -- Цвет шашек
-        piChcrs :: [DChcr]  -- Шашки игрока
-    }
-    
--- Полное состояние приложения (Data Application Data State)
-data DAppDtState = DAppDtState
-    {
-        adsXScale   :: Float,       -- Масштаб отрисовки изображения по X
-        adsYScale   :: Float,       -- Масштаб отрисовки изображения по Y
-        adsPOne     :: DPInf,       -- Данные первого игрока
-        adsPTwo     :: DPInf,       -- Данные второго игрока
-        adsBoard    :: DGBoard,     -- Данные игровой доски
-        adsState    :: AppStates,   -- Состояние приложения
-        adsLastUpd  :: Float,       -- Время с последнего обновления
-        adsDiceOne  :: Int,         -- Первая кость
-        adsDiceTwo  :: Int          -- Вторая кость
+        adScale :: (Float, Float),      -- Масштаб отрисовки
+        adState :: ApplicationState,    -- Состояние приложения
+        adBoard :: GameBoard,           -- Игровая доска
+        adDices :: (Int, Int)           -- Игровые кости
     }

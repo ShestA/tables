@@ -86,6 +86,34 @@ translatePolygon (tpCoords, tpColor) (tpX, tpY) = (tpNewCoords, tpColor) where
     tpDY = tpY - tpCenterY
     tpNewCoords = map (translateCoordinate (tpDX, tpDY)) (tpCoords)
 
+-- Создание координат окружности
+createCircle :: Integer -> Float -> [(Float, Float)]
+createCircle ccN ccRadius = result where
+    ccDeltaQuarter = fromInteger(ccN)/4
+    ccDeltaQuarter' = ceiling(ccDeltaQuarter)
+    ccItr = [0 .. ccDeltaQuarter']
+    ccFirstQuarter = map (createFirstQuarter (pi/(2 * ccDeltaQuarter))) ccItr where
+        createFirstQuarter :: Float -> Integer -> (Float, Float)
+        createFirstQuarter cfqDeltaAlpha cfqItrAlpha = (cfqResultX, cfqResultY) where
+            cfqResultX = (-cos (cfqDeltaAlpha * fromIntegral(cfqItrAlpha))) * ccRadius
+            cfqResultY = (sin (cfqDeltaAlpha * fromIntegral(cfqItrAlpha))) * ccRadius
+    ccSecondQuarter = map (createSecondQuarter (pi/(2 * ccDeltaQuarter))) ccItr where
+        createSecondQuarter :: Float -> Integer -> (Float, Float)
+        createSecondQuarter csqDeltaAlpha csqItrAlpha = (csqResultX, csqResultY) where
+            csqResultX = (cos (csqDeltaAlpha * fromIntegral(csqItrAlpha))) * ccRadius
+            csqResultY = (sin (csqDeltaAlpha * fromIntegral(csqItrAlpha))) * ccRadius
+    ccThirdQuarter = map (createThirdQuarter (pi/(2 * ccDeltaQuarter))) ccItr where
+        createThirdQuarter :: Float -> Integer -> (Float, Float)
+        createThirdQuarter ctqDeltaAlpha ctqItrAlpha = (ctqResultX, ctqResultY) where
+            ctqResultX = (cos (ctqDeltaAlpha * fromIntegral(ctqItrAlpha))) * ccRadius
+            ctqResultY = (-sin (ctqDeltaAlpha * fromIntegral(ctqItrAlpha))) * ccRadius
+    ccFourthQuarter = map (createFourthQuarter (pi/(2 * ccDeltaQuarter))) ccItr where
+        createFourthQuarter :: Float -> Integer -> (Float, Float)
+        createFourthQuarter cfqDeltaAlpha cfqItrAlpha = (cfqResultX, cfqResultY) where
+            cfqResultX = (-cos (cfqDeltaAlpha * fromIntegral(cfqItrAlpha))) * ccRadius
+            cfqResultY = (-sin (cfqDeltaAlpha * fromIntegral(cfqItrAlpha))) * ccRadius
+    result = ccFirstQuarter ++ ccSecondQuarter ++ ccThirdQuarter ++ ccFourthQuarter
+
 -- Отрисовка пункта с шашками
 pointAndCheckersPicture :: TablesPoint -> Picture
 pointAndCheckersPicture pcpPoint = result where
@@ -112,5 +140,3 @@ getGamePicture ggpBoard = result where
     ggpPointsPicture    = getPointsPicture (gbPoints ggpBoard)
     ggpBarPicture       = getBarPicture (gbBar ggpBoard)
     result   =   Pictures [ggpBoardPicture, ggpPointsPicture, ggpBarPicture]
-
--- Продолжение следует

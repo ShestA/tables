@@ -51,7 +51,7 @@ data GameBoard = GameBoard
         gbBoardPolygon  :: AuxPolygon,      -- Полигон игровой доски
         gbPoints        :: [TablesPoint],   -- Пункты на доске
         gbBar           :: TablesBar,       -- Шашки находящиеся на игровом баре
-        gbChecker       :: Checker          -- Перемещаемая шашка
+        gbChecker       :: Maybe Checker          -- Перемещаемая шашка
     }
 -- Игровое положение
 data ApplicationData = ApplicationData

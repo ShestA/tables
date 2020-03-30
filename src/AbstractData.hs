@@ -50,8 +50,8 @@ data GameBoard = GameBoard
     {
         gbBoardPolygon  :: AuxPolygon,      -- Полигон игровой доски
         gbPoints        :: [TablesPoint],   -- Пункты на доске
-        gbBar           :: TablesBar,       -- Шашки находящиеся на игровом баре
-        gbChecker       :: Maybe Checker          -- Перемещаемая шашка
+        gbBar           :: TablesBar,       -- Игровой бар
+        gbChecker       :: Maybe Checker    -- Перемещаемая шашка
     }
 -- Игровое положение
 data ApplicationData = ApplicationData

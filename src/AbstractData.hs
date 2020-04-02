@@ -17,21 +17,26 @@ type AuxPolygon = ([(Float, Float)], Color)
 -- Данные абстракции приложения
 
 -- Сотстояния приложения
-data ApplicationState = 
+data StepState = 
                 PlayerOneMove                    -- Ход игрока 1
                 | PlayerTwoMove                  -- Ход игрока 2
                 | PlayerOneRoll                  -- Бросок костей игрока 1
-                | PlayerTwoRoll  deriving (Enum) -- Бросок костей игрока 2
+                | PlayerTwoRoll  deriving (Eq)   -- Бросок костей игрока 2
+data ApplicationState = ApplicationState StepState Bool deriving (Eq)
 -- Игроки
 data PlayerName =
                 PlayerOne
-                | PlayerTwo deriving (Enum)
+                | PlayerTwo deriving (Eq)
+data Source     = 
+                Bar
+                | PointOnBoard deriving (Eq)
+data CheckerSource = CheckerSource Source (Maybe Int) deriving (Eq)
 -- Шашка
 data Checker = Checker
     {
         chPlayer        :: PlayerName,      -- Игрок, которому принадлежит шашка
         chPolygon       :: AuxPolygon       -- Полигон шашки
-    }
+    }deriving (Eq)
 -- Пункт
 data TablesPoint = TablesPoint
     {
@@ -48,10 +53,10 @@ data TablesBar = TablesBar
 -- Игровая доска
 data GameBoard = GameBoard
     {
-        gbBoardPolygon  :: AuxPolygon,      -- Полигон игровой доски
-        gbPoints        :: [TablesPoint],   -- Пункты на доске
-        gbBar           :: TablesBar,       -- Игровой бар
-        gbChecker       :: Maybe Checker    -- Перемещаемая шашка
+        gbBoardPolygon  :: AuxPolygon,                      -- Полигон игровой доски
+        gbPoints        :: [TablesPoint],                   -- Пункты на доске
+        gbBar           :: TablesBar,                       -- Игровой бар
+        gbChecker       :: Maybe (Checker, CheckerSource)   -- Перемещаемая шашка и ее источник
     }
 -- Игровое положение
 data ApplicationData = ApplicationData

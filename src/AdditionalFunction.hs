@@ -205,4 +205,8 @@ baseBar = TablesBar [(Checker PlayerOne testChecker)] ([(-80,500), (80, 500), (8
 
 -- Игровая доска
 baseGameBoard :: GameBoard
-baseGameBoard = GameBoard baseBoardPolygon baseTablesPoints baseBar Nothing
+baseGameBoard = GameBoard baseBoardPolygon baseTablesPoints baseBar Nothing Nothing
+
+-- Базовое игровое состояние
+baseGameState :: ApplicationState
+baseGameState = ApplicationState PlayerOneRoll False

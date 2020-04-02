@@ -30,7 +30,11 @@ data PlayerName =
 data Source     = 
                 Bar
                 | PointOnBoard deriving (Eq)
-data CheckerSource = CheckerSource Source (Maybe Int) deriving (Eq)
+data CheckerSource = CheckerSource 
+    {
+        csSource :: Source, 
+        csNumber :: (Maybe Int) 
+    }deriving (Eq)
 -- Шашка
 data Checker = Checker
     {
@@ -56,7 +60,7 @@ data GameBoard = GameBoard
         gbBoardPolygon  :: AuxPolygon,                      -- Полигон игровой доски
         gbPoints        :: [TablesPoint],                   -- Пункты на доске
         gbBar           :: TablesBar,                       -- Игровой бар
-        gbChecker       :: Maybe (Checker, CheckerSource)   -- Перемещаемая шашка и ее источник
+        gbChecker       :: (Maybe Checker, Maybe CheckerSource)   -- Перемещаемая шашка и ее источник
     }
 -- Игровое положение
 data ApplicationData = ApplicationData

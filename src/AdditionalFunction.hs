@@ -19,6 +19,14 @@ getTrueItrBooleanList (x:xs) itr
     | x = itr                                           -- Мы нашли True
     | otherwise = getTrueItrBooleanList xs (itr + 1)    -- Переходим к следующему элементу
 
+-- Удалить элемент из списка по индексу
+deleteListElement :: Bool -> [a] -> Int -> [a]
+deleteListElement False x _ = x
+deleteListElement True dleList dleItr = dleNewList where
+    dleLeftPart = fst(splitAt dleItr dleList)
+    dleRightPart = tail (snd(splitAt dleItr dleList))
+    dleNewList = dleLeftPart ++ dleRightPart
+
 -- Получение масштабного коэффициента
 getScreenScale :: (Float, Float) -> (Float, Float)
 getScreenScale (gsScrWidth, gsScrHeight) = (gsScaleX, gsScaleY) where
@@ -148,19 +156,111 @@ getGamePicture ggpBoard = result where
     ggpPointsPicture    = getPointsPicture (gbPoints ggpBoard)
     ggpBarPicture       = getBarPicture (gbBar ggpBoard)
     ggpMoveChecker      = gbChecker ggpBoard
-    ggpMoveCheckPicture = if isNothing (ggpMoveChecker) then
+    ggpMoveCheckPicture = if isNothing (fst(ggpMoveChecker)) then
                             Blank
                         else
-                            getPolygonPicture (chPolygon (fromJust ggpMoveChecker))
-    result   =   Pictures [ggpBoardPicture, ggpPointsPicture, ggpBarPicture, ggpMoveCheckPicture]
+                            getPolygonPicture (chPolygon (fromJust (fst(ggpMoveChecker))))
+    result   =   Pictures [ggpBoardPicture, ggpBarPicture, ggpPointsPicture, ggpMoveCheckPicture]
 
--- Удалить элемент из списка по индексу
-deleteListElement :: Bool -> [a] -> Int -> [a]
-deleteListElement False x _ = x
-deleteListElement True dleList dleItr = dleNewList where
-    dleLeftPart = fst(splitAt dleItr dleList)
-    dleRightPart = tail (snd(splitAt dleItr dleList))
-    dleNewList = dleLeftPart ++ dleRightPart
+-- При нахождении вытащить шашку из списка
+data OutPutCheckers = OutPutCheckers {opcList :: [Checker], opcElement :: Maybe Checker}
+swapChecker :: (Float, Float) -> [Checker] -> OutPutCheckers
+swapChecker scMouseCoord scList = scOutput where
+    scFlagsList = map (isInPolygon scMouseCoord) (map chPolygon scList)
+    scItr = getTrueItrBooleanList scFlagsList 0
+    scNewChecker = if (scItr == length scFlagsList) then
+        Nothing
+    else
+        Just (scList !! scItr)
+    scNewList = deleteListElement (scItr < length scFlagsList) scList scItr
+    scOutput = OutPutCheckers scNewList scNewChecker
+
+-- Замена списка шашек в пункте
+replaceCheckersList :: TablesPoint -> OutPutCheckers -> TablesPoint
+replaceCheckersList rclPoint rclCheckersList = rclNewPoint where
+    rclNewList = if (isNothing(opcElement rclCheckersList)) then
+        (tpCheckers rclPoint)
+    else
+        (opcList rclCheckersList)
+    rclNewPoint = TablesPoint (tpNumber rclPoint) rclNewList (tpPolygon rclPoint)
+
+-- Нахождение значения Just в списке
+getNewCheckerItr :: [OutPutCheckers] -> Int -> Int
+getNewCheckerItr [] gniItr = gniItr     -- Не найдено
+getNewCheckerItr (x:xs) gniItr
+    | isJust(opcElement x) = gniItr     -- Найдено
+    | otherwise = getNewCheckerItr xs (gniItr + 1)  -- Идем дальше
+
+-- Заменить пункт в списке пунктов
+changePointInList :: [TablesPoint] -> Int -> Checker -> [TablesPoint]
+changePointInList cplList cplItr cplChecker = cplNewList where
+    cplPoint = cplList !! cplItr
+    cplNewPoint = TablesPoint (tpNumber cplPoint) ((tpCheckers cplPoint) ++ [cplChecker]) (tpPolygon cplPoint)
+    cplSplitList = splitAt cplItr cplList
+    cplNewList = (fst cplSplitList) ++ [cplNewPoint] ++ (tail (snd cplSplitList))
+
+-- Примагнитить шашку к движению мышки
+attachMovingChecker :: (Float, Float) -> GameBoard -> GameBoard
+attachMovingChecker amcMouseCoord amcOldBoard = amcNewBoard where
+    amcOldPoints = gbPoints amcOldBoard
+    amcOldBar = gbBar amcOldBoard
+    amcBarCheckers = tbCheckers amcOldBar
+    amcInputBar = swapChecker amcMouseCoord amcBarCheckers
+    amcNewBarCheckers = opcList amcInputBar
+    amcInputPoints = map (swapChecker amcMouseCoord) (map tpCheckers amcOldPoints)
+    amcNewPoints = zipWith replaceCheckersList amcOldPoints amcInputPoints
+    amcItr = getNewCheckerItr (amcInputPoints ++ [amcInputBar]) 0
+    amcNewChecker = if (amcItr < length (amcInputPoints ++ [amcInputBar])) then
+        opcElement ((amcInputPoints ++ [amcInputBar]) !! amcItr)
+    else
+        Nothing
+    amcSource = if (amcItr < length amcInputPoints) then
+        Just (CheckerSource PointOnBoard (return (amcItr)))
+    else
+        if (amcItr == length amcInputPoints) then
+            Just (CheckerSource Bar Nothing)
+        else
+            Nothing
+    amcNewBar = TablesBar (opcList amcInputBar) (tbPolygon amcOldBar)
+    amcNewBoard = GameBoard (gbBoardPolygon amcOldBoard) amcNewPoints amcNewBar (amcNewChecker, amcSource)
+
+-- Переместить шашку
+translateMovingChecker :: (Float, Float) -> GameBoard -> GameBoard
+translateMovingChecker tmcCoord tmcBoard = tmcNewBoard where
+    tmcMoveChecker = gbChecker tmcBoard
+    tmcChecker = fst(tmcMoveChecker)
+    tmcSource = snd(tmcMoveChecker)
+    tmcPlayer = if (isJust(tmcChecker)) then
+        chPlayer (fromJust(tmcChecker))
+    else
+        PlayerOne
+    tmcNewChecker = if (isJust(tmcChecker)) then
+        Just (Checker tmcPlayer (translatePolygon (chPolygon(fromJust(tmcChecker))) tmcCoord))
+    else
+        Nothing
+    tmcNewBoard = GameBoard (gbBoardPolygon tmcBoard) (gbPoints tmcBoard) (gbBar tmcBoard) (tmcNewChecker, tmcSource)
+
+-- Открепить шашку
+detachMovingChecker :: (Float, Float) -> GameBoard -> GameBoard
+detachMovingChecker dmcCoord dmcBoard = dmcNewBoard where
+    dmcOldBar = gbBar dmcBoard
+    dmcOldPoints = gbPoints dmcBoard
+    dmcMoveChecker = gbChecker dmcBoard
+    dmcChecker = fst(dmcMoveChecker)
+    dmcSource = snd(dmcMoveChecker)
+    
+    dmcNewBar = if (dmcSource == Just(CheckerSource Bar Nothing)) then
+        TablesBar ((tbCheckers dmcOldBar) ++ [fromJust(dmcChecker)]) (tbPolygon dmcOldBar)
+    else
+        dmcOldBar
+    dmcNewPoints = if (isJust(dmcSource)) then
+        if ((csSource (fromJust(dmcSource))) == PointOnBoard) then
+            changePointInList dmcOldPoints (fromJust(csNumber (fromJust(dmcSource)))) (fromJust(dmcChecker))
+        else
+            dmcOldPoints
+    else
+        dmcOldPoints
+    dmcNewBoard = GameBoard (gbBoardPolygon dmcBoard) dmcNewPoints dmcNewBar (Nothing, Nothing)
 
 -- ******************************************************************
 -- Объявление констант
@@ -190,14 +290,14 @@ baseBoardPolygon :: AuxPolygon
 baseBoardPolygon = ([(-900, 500), (900, 500),
                         (900, -500), (-900, -500)], makeColorI 91 58 41 255)
 
--- Базовый список пунктов
-baseTablesPoints :: [TablesPoint]
-baseTablesPoints = [(TablesPoint 1 [] ([(800, 500), (880, 500), (840,100)], makeColorI 135 67 8 255)),
-                    (TablesPoint 2 [] ([(680, 500), (760, 500), (720,100)], makeColorI 249 214 184 255))]
-
 -- Пробная шашка
 testChecker :: AuxPolygon
 testChecker = ((createCircle 400 40.0), makeColorI 255 255 255 255)
+
+-- Базовый список пунктов
+baseTablesPoints :: [TablesPoint]
+baseTablesPoints = [(TablesPoint 1 [(Checker PlayerOne (translatePolygon testChecker (100, 100)))] ([(800, 500), (880, 500), (840,100)], makeColorI 135 67 8 255)),
+                    (TablesPoint 2 [] ([(680, 500), (760, 500), (720,100)], makeColorI 249 214 184 255))]
 
 -- Базовый игровой бар
 baseBar :: TablesBar
@@ -205,7 +305,7 @@ baseBar = TablesBar [(Checker PlayerOne testChecker)] ([(-80,500), (80, 500), (8
 
 -- Игровая доска
 baseGameBoard :: GameBoard
-baseGameBoard = GameBoard baseBoardPolygon baseTablesPoints baseBar Nothing Nothing
+baseGameBoard = GameBoard baseBoardPolygon baseTablesPoints baseBar (Nothing, Nothing)
 
 -- Базовое игровое состояние
 baseGameState :: ApplicationState

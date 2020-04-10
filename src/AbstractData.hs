@@ -16,17 +16,22 @@ type AuxPolygon = ([(Float, Float)], Color)
 -- ******************************************************************
 -- Данные абстракции приложения
 
--- Сотстояния приложения
-data StepState = 
-                PlayerOneMove                    -- Ход игрока 1
-                | PlayerTwoMove                  -- Ход игрока 2
-                | PlayerOneRoll                  -- Бросок костей игрока 1
-                | PlayerTwoRoll  deriving (Eq)   -- Бросок костей игрока 2
-data ApplicationState = ApplicationState StepState Bool deriving (Eq)
 -- Игроки
 data PlayerName =
                 PlayerOne
                 | PlayerTwo deriving (Eq)
+                
+-- Сотстояния приложения
+data StepState = 
+                Move                    -- Ход игрока
+                | Roll  deriving (Eq)   -- Бросок костей игрока 
+data ApplicationState = ApplicationState
+    {
+        currentPlayer   :: PlayerName,
+        currentAction   :: StepState,
+        isFinish        :: Bool 
+    }deriving (Eq)
+-- Источник движущейся шашки
 data Source     = 
                 Bar
                 | PointOnBoard deriving (Eq)
@@ -60,13 +65,13 @@ data GameBoard = GameBoard
         gbBoardPolygon  :: AuxPolygon,                      -- Полигон игровой доски
         gbPoints        :: [TablesPoint],                   -- Пункты на доске
         gbBar           :: TablesBar,                       -- Игровой бар
-        gbChecker       :: (Maybe Checker, Maybe CheckerSource)   -- Перемещаемая шашка и ее источник
+        gbChecker       :: (Maybe Checker, Maybe CheckerSource),   -- Перемещаемая шашка и ее источник
+        gbState         :: ApplicationState,                -- Игровое состояние
+        gbDices         :: (Int, Int)                       -- Игровые кости
     }
 -- Игровое положение
 data ApplicationData = ApplicationData
     {
         adScale :: (Float, Float),      -- Масштаб отрисовки
-        adState :: ApplicationState,    -- Состояние приложения
-        adBoard :: GameBoard,           -- Игровая доска
-        adDices :: (Int, Int)           -- Игровые кости
+        adBoard :: GameBoard            -- Игровая доска
     }

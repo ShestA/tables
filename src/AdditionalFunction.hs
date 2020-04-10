@@ -7,17 +7,40 @@ import Graphics.Gloss.Interface.Environment
 import Data.Maybe
 
 import AbstractData
-import Constants
+
+-- ******************************************************************
+-- Описание вспомогательных констант
+-- Базовая ширина экрана
+baseScreenWidth :: Float
+baseScreenWidth = 1920.0
+
+-- Базовая высота экрана
+baseScreenHeight :: Float
+baseScreenHeight = 1080.0
 
 -- ******************************************************************
 -- Описание вспомогательных функций программы
 
--- Нахождение значения True в Boolean списке
-getTrueItrBooleanList :: [Bool] -> Int -> Int
-getTrueItrBooleanList [] x = x                      -- True не найден
-getTrueItrBooleanList (x:xs) itr
-    | x = itr                                           -- Мы нашли True
-    | otherwise = getTrueItrBooleanList xs (itr + 1)    -- Переходим к следующему элементу
+                                                        {-
+                                                        -- Нахождение значения True в Boolean списке
+                                                        getTrueItrBooleanList :: [Bool] -> Int -> Int
+                                                        getTrueItrBooleanList [] x = x                      -- True не найден
+                                                        getTrueItrBooleanList (x:xs) itr
+                                                            | x = itr                                           -- Мы нашли True
+                                                            | otherwise = getTrueItrBooleanList xs (itr + 1)    -- Переходим к следующему элементу
+                                                        -- Нахождение значения Just в списке
+                                                        getNewCheckerItr :: [OutPutCheckers] -> Int -> Int
+                                                        getNewCheckerItr [] gniItr = gniItr     -- Не найдено
+                                                        getNewCheckerItr (x:xs) gniItr
+                                                            | isJust(opcElement x) = gniItr     -- Найдено
+                                                            | otherwise = getNewCheckerItr xs (gniItr + 1)  -- Идем дальше
+                                                        -}
+-- Нахождение значения в списке по функции
+getItrFuncList :: [a] -> (a -> Bool) -> Int -> Int
+getItrFuncList [] _ x = x                           -- Значение не найдено
+getItrFuncList (x:xs) func itr
+    | func x = itr                                  -- Найдено
+    | otherwise = getItrFuncList xs func (itr + 1)  -- Переходим к следующему
 
 -- Удалить элемент из списка по индексу
 deleteListElement :: Bool -> [a] -> Int -> [a]
@@ -167,7 +190,9 @@ data OutPutCheckers = OutPutCheckers {opcList :: [Checker], opcElement :: Maybe 
 swapChecker :: (Float, Float) -> [Checker] -> OutPutCheckers
 swapChecker scMouseCoord scList = scOutput where
     scFlagsList = map (isInPolygon scMouseCoord) (map chPolygon scList)
-    scItr = getTrueItrBooleanList scFlagsList 0
+    scItr = getItrFuncList scFlagsList func 0 where
+        func :: Bool -> Bool
+        func x = x
     scNewChecker = if (scItr == length scFlagsList) then
         Nothing
     else
@@ -184,14 +209,7 @@ replaceCheckersList rclPoint rclCheckersList = rclNewPoint where
         (opcList rclCheckersList)
     rclNewPoint = TablesPoint (tpNumber rclPoint) rclNewList (tpPolygon rclPoint)
 
--- Нахождение значения Just в списке
-getNewCheckerItr :: [OutPutCheckers] -> Int -> Int
-getNewCheckerItr [] gniItr = gniItr     -- Не найдено
-getNewCheckerItr (x:xs) gniItr
-    | isJust(opcElement x) = gniItr     -- Найдено
-    | otherwise = getNewCheckerItr xs (gniItr + 1)  -- Идем дальше
-
--- Заменить пункт в списке пунктов
+-- Заменить пункт в списке пунктов, добавив в него шашку
 changePointInList :: [TablesPoint] -> Int -> Checker -> [TablesPoint]
 changePointInList cplList cplItr cplChecker = cplNewList where
     cplPoint = cplList !! cplItr
@@ -205,26 +223,44 @@ attachMovingChecker amcMouseCoord amcOldBoard = amcNewBoard where
     amcOldPoints = gbPoints amcOldBoard
     amcOldBar = gbBar amcOldBoard
     amcBarCheckers = tbCheckers amcOldBar
+    amcState = gbState amcOldBoard
     amcInputBar = swapChecker amcMouseCoord amcBarCheckers
     amcNewBarCheckers = opcList amcInputBar
     amcInputPoints = map (swapChecker amcMouseCoord) (map tpCheckers amcOldPoints)
-    amcNewPoints = zipWith replaceCheckersList amcOldPoints amcInputPoints
-    amcItr = getNewCheckerItr (amcInputPoints ++ [amcInputBar]) 0
+    amcItr = getItrFuncList (amcInputPoints ++ [amcInputBar]) func 0 where
+        func :: OutPutCheckers -> Bool
+        func x = isJust(opcElement x)
     amcNewChecker = if (amcItr < length (amcInputPoints ++ [amcInputBar])) then
-        opcElement ((amcInputPoints ++ [amcInputBar]) !! amcItr)
+        let amcTmpChecker = opcElement ((amcInputPoints ++ [amcInputBar]) !! amcItr) in
+            if (((currentAction amcState) == Move) && ((currentPlayer amcState) == chPlayer (fromJust (amcTmpChecker)))) then
+                amcTmpChecker
+            else
+                Nothing 
     else
         Nothing
-    amcSource = if (amcItr < length amcInputPoints) then
-        Just (CheckerSource PointOnBoard (return (amcItr)))
-    else
-        if (amcItr == length amcInputPoints) then
-            Just (CheckerSource Bar Nothing)
+    amcNewSource = if isJust(amcNewChecker) then
+            if (amcItr < length amcInputPoints) then
+                Just (CheckerSource PointOnBoard (return (amcItr)))
+            else
+                if (amcItr == length amcInputPoints) then
+                    Just (CheckerSource Bar Nothing)
+                else
+                    Nothing
         else
             Nothing
-    amcNewBar = TablesBar (opcList amcInputBar) (tbPolygon amcOldBar)
-    amcNewBoard = GameBoard (gbBoardPolygon amcOldBoard) amcNewPoints amcNewBar (amcNewChecker, amcSource)
+    amcNewPoints = if isJust(amcNewChecker) then
+        zipWith replaceCheckersList amcOldPoints amcInputPoints
+    else
+        amcOldPoints
+    amcNewBar = if isJust(amcNewChecker) then
+        TablesBar (opcList amcInputBar) (tbPolygon amcOldBar)
+    else
+        amcOldBar
+    amcOldBoardPolygon = (gbBoardPolygon amcOldBoard)
+    amcOldDices = (gbDices amcOldBoard)
+    amcNewBoard = GameBoard amcOldBoardPolygon amcNewPoints amcNewBar (amcNewChecker, amcNewSource) amcState amcOldDices
 
--- Переместить шашку
+-- Переместить примагниченную шашку
 translateMovingChecker :: (Float, Float) -> GameBoard -> GameBoard
 translateMovingChecker tmcCoord tmcBoard = tmcNewBoard where
     tmcMoveChecker = gbChecker tmcBoard
@@ -238,7 +274,10 @@ translateMovingChecker tmcCoord tmcBoard = tmcNewBoard where
         Just (Checker tmcPlayer (translatePolygon (chPolygon(fromJust(tmcChecker))) tmcCoord))
     else
         Nothing
-    tmcNewBoard = GameBoard (gbBoardPolygon tmcBoard) (gbPoints tmcBoard) (gbBar tmcBoard) (tmcNewChecker, tmcSource)
+    tmcOldBoardPolygon = (gbBoardPolygon tmcBoard)
+    tmcOldDices = (gbDices tmcBoard)
+    tmcState = gbState tmcBoard
+    tmcNewBoard = GameBoard tmcOldBoardPolygon (gbPoints tmcBoard) (gbBar tmcBoard) (tmcNewChecker, tmcSource) tmcState tmcOldDices
 
 -- Открепить шашку
 detachMovingChecker :: (Float, Float) -> GameBoard -> GameBoard
@@ -248,7 +287,6 @@ detachMovingChecker dmcCoord dmcBoard = dmcNewBoard where
     dmcMoveChecker = gbChecker dmcBoard
     dmcChecker = fst(dmcMoveChecker)
     dmcSource = snd(dmcMoveChecker)
-    
     dmcNewBar = if (dmcSource == Just(CheckerSource Bar Nothing)) then
         TablesBar ((tbCheckers dmcOldBar) ++ [fromJust(dmcChecker)]) (tbPolygon dmcOldBar)
     else
@@ -260,53 +298,4 @@ detachMovingChecker dmcCoord dmcBoard = dmcNewBoard where
             dmcOldPoints
     else
         dmcOldPoints
-    dmcNewBoard = GameBoard (gbBoardPolygon dmcBoard) dmcNewPoints dmcNewBar (Nothing, Nothing)
-
--- ******************************************************************
--- Объявление констант
-
--- Базовая ширина экрана
-baseScreenWidth :: Float
-baseScreenWidth = 1920.0
-
--- Базовая высота экрана
-baseScreenHeight :: Float
-baseScreenHeight = 1080.0
-
--- Режим экрана
-dispMode :: Display
-dispMode = FullScreen
-
--- Цвет заднего фона
-bgColor :: Color
-bgColor = makeColorI 118 60 40 255
-
--- Частота вызова функции updateGameApp
-fps :: Int
-fps = 75
-
--- Базовый полигон доски
-baseBoardPolygon :: AuxPolygon
-baseBoardPolygon = ([(-900, 500), (900, 500),
-                        (900, -500), (-900, -500)], makeColorI 91 58 41 255)
-
--- Пробная шашка
-testChecker :: AuxPolygon
-testChecker = ((createCircle 400 40.0), makeColorI 255 255 255 255)
-
--- Базовый список пунктов
-baseTablesPoints :: [TablesPoint]
-baseTablesPoints = [(TablesPoint 1 [(Checker PlayerOne (translatePolygon testChecker (100, 100)))] ([(800, 500), (880, 500), (840,100)], makeColorI 135 67 8 255)),
-                    (TablesPoint 2 [] ([(680, 500), (760, 500), (720,100)], makeColorI 249 214 184 255))]
-
--- Базовый игровой бар
-baseBar :: TablesBar
-baseBar = TablesBar [(Checker PlayerOne testChecker)] ([(-80,500), (80, 500), (80, -500), (-80, -500)], makeColorI 118 60 40 255)
-
--- Игровая доска
-baseGameBoard :: GameBoard
-baseGameBoard = GameBoard baseBoardPolygon baseTablesPoints baseBar (Nothing, Nothing)
-
--- Базовое игровое состояние
-baseGameState :: ApplicationState
-baseGameState = ApplicationState PlayerOneRoll False
+    dmcNewBoard = GameBoard (gbBoardPolygon dmcBoard) dmcNewPoints dmcNewBar (Nothing, Nothing) (gbState dmcBoard) (gbDices dmcBoard)

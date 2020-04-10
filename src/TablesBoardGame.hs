@@ -24,19 +24,19 @@ drawGameApp dgaData = result where
 handleGameEvent :: Event -> ApplicationData -> ApplicationData
 handleGameEvent (EventKey (MouseButton LeftButton) Down _ hgeMouseCoord) x = xnew where
     hgeNewBoard = attachMovingChecker hgeMouseCoord (adBoard x)
-    xnew        = ApplicationData (adScale x) (adState x) hgeNewBoard (adDices x)
+    xnew        = ApplicationData (adScale x) hgeNewBoard
 handleGameEvent (EventMotion hgeMouseCoord) x = xnew where
     hgeNewBoard = translateMovingChecker hgeMouseCoord (adBoard x)
-    xnew        = ApplicationData (adScale x) (adState x) hgeNewBoard (adDices x)
+    xnew        = ApplicationData (adScale x) hgeNewBoard
 handleGameEvent (EventKey (MouseButton LeftButton) Up _ hgeMouseCoord) x = xnew where
     hgeNewBoard = detachMovingChecker hgeMouseCoord (adBoard x)
-    xnew        = ApplicationData (adScale x) (adState x) hgeNewBoard (adDices x)
+    xnew        = ApplicationData (adScale x) hgeNewBoard
 handleGameEvent (EventKey (SpecialKey KeySpace) Down _ _) x = xnew where
     --hgeNewDices = rollDices (adState x) (adDices x)
     xnew = x
     --xnew        = ApplicationData (adScale x) (nextStep (adState x)) (adBoard x) hgeNewDices
 handleGameEvent (EventKey (SpecialKey KeyF12) Down _ _) x = xnew where
-    xnew        = ApplicationData (adScale x) baseGameState baseGameBoard (0,0)
+    xnew        = ApplicationData (adScale x) baseGameBoard
 handleGameEvent _ x = x
 
 -- Обработчик кадра
@@ -51,7 +51,7 @@ run = do
     let runScreenWidth = fromIntegral (fst runScreenSize)
     let runScreenHeight = fromIntegral (snd runScreenSize)
     let (runWidthScale, runHeightScale) = getScreenScale (runScreenWidth, runScreenHeight)
-    let initGameState = ApplicationData (runWidthScale, runHeightScale) baseGameState baseGameBoard (0, 0)
+    let initGameState = ApplicationData (runWidthScale, runHeightScale) baseGameBoard
     play dispMode bgColor fps initGameState drawGameApp handleGameEvent updateGameApp
 -- Остатки HGE
 {- Левую кнопку мыши нажали

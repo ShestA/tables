@@ -23,7 +23,7 @@ drawGameApp dgaData = result where
 -- Обработчик событий
 handleGameEvent :: Event -> ApplicationData -> ApplicationData
 handleGameEvent (EventKey (MouseButton LeftButton) Down _ hgeMouseCoord) x = xnew where
-    hgeNewBoard = attachMovingChecker hgeMouseCoord (adBoard x)
+    hgeNewBoard = attachMovingChecker hgeMouseCoord (adBoard x) -- При нестандартном разрешении координаты мыши плывут(БАГ)
     xnew        = ApplicationData (adScale x) hgeNewBoard
 handleGameEvent (EventMotion hgeMouseCoord) x = xnew where
     hgeNewBoard = translateMovingChecker hgeMouseCoord (adBoard x)

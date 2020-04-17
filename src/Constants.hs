@@ -38,7 +38,7 @@ testChecker1 = ((createCircle 10 40.0), makeColorI 0 0 0 255)
 
 -- Базовый список пунктов
 baseTablesPoints :: [TablesPoint]
-baseTablesPoints = [(TablesPoint 1 [(Checker PlayerTwo (translatePolygon testChecker1 (100, 100)))] ([(800, 500), (880, 500), (840,100)], makeColorI 135 67 8 255)),
+baseTablesPoints = [(TablesPoint 1 [(Checker PlayerOne (translatePolygon testChecker (100, 100)))] ([(800, 500), (880, 500), (840,100)], makeColorI 135 67 8 255)),
                     (TablesPoint 2 [] ([(680, 500), (760, 500), (720,100)], makeColorI 249 214 184 255))]
 
 -- Базовый игровой бар

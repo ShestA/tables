@@ -22,20 +22,6 @@ baseScreenHeight = 1080.0
 -- ******************************************************************
 -- Описание вспомогательных функций программы
 
-                                                        {-
-                                                        -- Нахождение значения True в Boolean списке
-                                                        getTrueItrBooleanList :: [Bool] -> Int -> Int
-                                                        getTrueItrBooleanList [] x = x                      -- True не найден
-                                                        getTrueItrBooleanList (x:xs) itr
-                                                            | x = itr                                           -- Мы нашли True
-                                                            | otherwise = getTrueItrBooleanList xs (itr + 1)    -- Переходим к следующему элементу
-                                                        -- Нахождение значения Just в списке
-                                                        getNewCheckerItr :: [OutPutCheckers] -> Int -> Int
-                                                        getNewCheckerItr [] gniItr = gniItr     -- Не найдено
-                                                        getNewCheckerItr (x:xs) gniItr
-                                                            | isJust(opcElement x) = gniItr     -- Найдено
-                                                            | otherwise = getNewCheckerItr xs (gniItr + 1)  -- Идем дальше
-                                                        -}
 -- Нахождение значения в списке по функции
 getItrFuncList :: [a] -> (a -> Bool) -> Int -> Int
 getItrFuncList [] _ x = x                           -- Значение не найдено
@@ -51,6 +37,14 @@ deleteListElement True dleList dleItr = dleNewList where
     dleRightPart = tail (snd(splitAt dleItr dleList))
     dleNewList = dleLeftPart ++ dleRightPart
 
+-- Изменить элемент списка по индексу
+changeListElement :: Bool -> [a] -> a -> Int -> [a]
+changeListElement False x _ _ = x
+changeListElement True cleList cleEl cleItr = cleNewList where
+    cleLeftPart = fst(splitAt cleItr cleList)
+    cleRightPart = tail (snd(splitAt cleItr cleList))
+    cleNewList = cleLeftPart ++ [cleEl] ++ cleRightPart
+    
 -- Получение масштабного коэффициента
 getScreenScale :: (Float, Float) -> (Float, Float)
 getScreenScale (gsScrWidth, gsScrHeight) = (gsScaleX, gsScaleY) where
@@ -185,7 +179,7 @@ getGamePicture ggpBoard = result where
                         else
                             getPolygonPicture (chPolygon (fromJust (fst(ggpMoveChecker))))
     result   =   Pictures [ggpBoardPicture, ggpBarPicture, ggpPointsPicture, ggpMoveCheckPicture]
-
+{-
 -- При нахождении вытащить шашку из списка
 data OutPutCheckers = OutPutCheckers {opcList :: [Checker], opcElement :: Maybe Checker}
 swapChecker :: (Float, Float) -> [Checker] -> OutPutCheckers
@@ -200,7 +194,19 @@ swapChecker scMouseCoord scList = scOutput where
         Just (scList !! scItr)
     scNewList = deleteListElement (scItr < length scFlagsList) scList scItr
     scOutput = OutPutCheckers scNewList scNewChecker
-
+-}
+-- При нахождении вытащить шашку из списка
+data OutPutCheckers = OutPutCheckers {opcList :: [Checker], opcElement :: Maybe Checker}
+swapChecker :: (Checker -> Bool) -> [Checker] -> OutPutCheckers
+swapChecker scTest scList = scOutput where
+    scFlagsList = map scTest scList
+    scItr = findIndex (\x -> x) scFlagsList
+    scNewChecker = if (isNothing scItr) then
+        Nothing
+    else
+        Just (scList !! (fromJust scItr))
+    scNewList = deleteListElement (isJust scItr) scList (fromJust scItr)
+    scOutput = OutPutCheckers scNewList scNewChecker
 -- Замена списка шашек в пункте
 replaceCheckersList :: TablesPoint -> OutPutCheckers -> TablesPoint
 replaceCheckersList rclPoint rclCheckersList = rclNewPoint where
@@ -240,7 +246,7 @@ attachMovingChecker amcMouseCoord amcOldBoard = amcNewBoard where
         GameBoard amcOldBoardPolygon amcNewPoints amcOldBar (amcNewPointChecker, amcNewPointSource) amcState amcOldDices
     else
         GameBoard amcOldBoardPolygon amcOldPoints amcNewBar (amcNewBarChecker, amcNewBarSource) amcState amcOldDices where
-            amcInputPoints = map (swapChecker amcMouseCoord) (map tpCheckers amcOldPoints) 
+            amcInputPoints = map (swapChecker (\x -> isInPolygon amcMouseCoord (chPolygon x))) (map tpCheckers amcOldPoints)
             amcItr = getItrFuncList (amcInputPoints) func 0 where
                 func :: OutPutCheckers -> Bool
                 func x = isJust(opcElement x)
@@ -260,7 +266,7 @@ attachMovingChecker amcMouseCoord amcOldBoard = amcNewBoard where
                 zipWith replaceCheckersList amcOldPoints amcInputPoints
             else
                 amcOldPoints
-            amcInputBar = swapChecker amcMouseCoord amcBarCheckers
+            amcInputBar = swapChecker (\x -> isInPolygon amcMouseCoord (chPolygon x)) amcBarCheckers
             amcNewBarCheckers = opcList amcInputBar
             amcNewBarChecker = opcElement amcInputBar
             amcNewBarSource = if isJust(amcNewBarChecker) then Just (CheckerSource Bar Nothing) else Nothing
@@ -291,20 +297,131 @@ translateMovingChecker tmcCoord tmcBoard = tmcNewBoard where
 -- Открепить шашку
 detachMovingChecker :: (Float, Float) -> GameBoard -> GameBoard
 detachMovingChecker dmcCoord dmcBoard = dmcNewBoard where
+    dmcBoardPolygon = gbBoardPolygon dmcBoard
     dmcOldBar = gbBar dmcBoard
+    dmcOldBarCheckers = tbCheckers dmcOldBar
+    dmcOldBarPolygon = tbPolygon dmcOldBar
     dmcOldPoints = gbPoints dmcBoard
+    dmcMoveChecker = gbChecker dmcBoard
+    dmcChecker = fst(dmcMoveChecker)
+    dmcSource = snd(dmcMoveChecker)
+    dmcOldDices = gbDices dmcBoard
+    dmcOldState = gbState dmcBoard
+    dmcPlayer = currentPlayer dmcOldState
+    dmcNewBoard = if (isJust dmcChecker) then
+        GameBoard dmcBoardPolygon dmcNewPoints dmcNewBar (Nothing, Nothing) dmcNewState dmcNewDices
+    else
+        dmcBoard where
+            dmcOffsets = [fst dmcOldDices, snd dmcOldDices, fst dmcOldDices + snd dmcOldDices]
+            dmcStart = if (csSource (fromJust(dmcSource)) == Bar) then 
+                if (dmcPlayer == PlayerOne) then
+                    -1
+                else
+                    24
+            else
+                if (dmcPlayer == PlayerOne) then
+                    fromJust (csNumber (fromJust(dmcSource)))
+                else
+                    fromJust (csNumber (fromJust(dmcSource)))
+            dmcAllTargets = if (dmcPlayer == PlayerOne) then 
+                map (\x -> dmcStart + x) dmcOffsets
+            else
+                map (\x -> dmcStart - x) dmcOffsets
+            dmcFitTargets = func dmcPlayer dmcOldPoints dmcAllTargets where
+                func :: PlayerName -> [TablesPoint] -> [Int] -> [Int]
+                func name pts targets = result where
+                    lst = map (\x -> pts !! x) targets
+                    result = concat (map func1 lst) where
+                        func1 :: TablesPoint -> [Int]
+                        func1 pnt = itr where
+                            ckrlst = tpCheckers pnt
+                            enemylist = filter (\x -> (chPlayer x) /= name) ckrlst
+                            itr = if (length enemylist > 1) then [] else [tpNumber pnt]
+            dmcPlayerTarget = getItrFuncList dmcOldPoints func 0 where
+                func :: TablesPoint -> Bool
+                func pts = isInPolygon dmcCoord (tpPolygon pts)
+            dmcSearchFlag = elem dmcPlayerTarget dmcFitTargets
+            dmcNewBar' = if dmcSearchFlag then
+                dmcOldBar
+            else
+                if (csSource (fromJust(dmcSource)) == Bar) then
+                    TablesBar (dmcOldBarCheckers ++ [fromJust(dmcChecker)]) dmcOldBarPolygon
+                else
+                    dmcOldBar
+            dmcNewPoints' = if dmcSearchFlag then
+                changePointInList dmcOldPoints dmcPlayerTarget (fromJust(dmcChecker))
+            else
+                if (csSource (fromJust(dmcSource)) == PointOnBoard) then
+                    changePointInList dmcOldPoints (fromJust(csNumber (fromJust(dmcSource)))) (fromJust(dmcChecker))
+                else
+                    dmcOldPoints
+            dmcEnemyBeate = if dmcSearchFlag then
+                Just $ swapChecker (\x -> chPlayer x /= dmcPlayer) (tpCheckers (dmcNewPoints' !! dmcPlayerTarget))
+            else
+                Nothing
+            dmcInitList = map (swapChecker (\x -> False)) (map tpCheckers dmcNewPoints')
+            dmcReadyList = changeListElement dmcSearchFlag dmcInitList (fromJust dmcEnemyBeate) dmcPlayerTarget
+            dmcNewPoints = if dmcSearchFlag then 
+                if isJust (opcElement (fromJust dmcEnemyBeate)) then
+                    zipWith replaceCheckersList dmcNewPoints' dmcReadyList
+                else
+                    dmcNewPoints'
+            else
+                dmcNewPoints'
+            dmcNewBar = if dmcSearchFlag then
+                if isJust (opcElement (fromJust dmcEnemyBeate)) then
+                    TablesBar (dmcOldBarCheckers ++ [fromJust (opcElement (fromJust dmcEnemyBeate))]) dmcOldBarPolygon
+                else
+                    dmcNewBar'
+            else
+                dmcNewBar'
+            dmcMoveInd = if dmcSearchFlag then
+                findIndex (\x -> x == dmcPlayerTarget) dmcAllTargets
+            else
+                Nothing
+            dmcNewOffsets' = changeListElement (isJust dmcMoveInd) dmcOffsets 0 (fromJust dmcMoveInd)
+            dmcNewOffsets = if (dmcNewOffsets' !! 2 == 0) then [0,0] else [dmcNewOffsets' !! 0, dmcNewOffsets' !! 1]
+            dmcNewDices = (dmcNewOffsets !! 0, dmcNewOffsets !! 1)
+            dmcNewState = if dmcNewDices == (0,0) then 
+                if dmcPlayer == PlayerOne then
+                    ApplicationState PlayerTwo Roll False
+                else
+                    ApplicationState PlayerOne Roll False
+            else
+                dmcOldState
+
+-- Бросаем кубики
+rollDices :: GameBoard -> GameBoard
+rollDices x = xnew where
+    a = gbBoardPolygon x
+    b = gbPoints x
+    c = gbBar x
+    d = gbChecker x
+    e = gbState x
+    f = currentPlayer e
+    g = ApplicationState f Move False
+    xnew = GameBoard a b c d g (1,1)
+{-
+-- Открепить шашку
+detachMovingChecker :: (Float, Float) -> GameBoard -> GameBoard
+detachMovingChecker dmcCoord dmcBoard = dmcNewBoard where
+    dmcOldBar = gbBar dmcBoard
+    
+    dmcOldPoints = gbPoints dmcBoard
+    dmcPointsList = gbPoints dmcBoard
+    
     dmcMoveChecker = gbChecker dmcBoard
     dmcChecker = fst(dmcMoveChecker)
     dmcSource = snd(dmcMoveChecker)
     dmcOldDices = gbDices dmcBoard
     dmcState = gbState dmcBoard
     dmcPlayer = currentPlayer dmcState
-    dmcPointsList = gbPoints dmcBoard
+
     -- Шашки нет
     
     -- Шашка есть
     dmcOffsets = [fst dmcOldDices, snd dmcOldDices, fst dmcOldDices + snd dmcOldDices]
-    dmcStart = if (csSource (fromJust(dmcSource)) == Bar) then 0 else (fromJust(csNumber (fromJust(dmcSource))))
+    dmcStart = if (csSource (fromJust(dmcSource)) == Bar) then -1 else (fromJust(csNumber (fromJust(dmcSource))))
     dmcAllTargets = if (dmcPlayer == PlayerOne) then map (\x -> x + dmcStart) dmcOffsets else map (\x -> x - dmcStart) dmcOffsets
     dmcFitTargets = func dmcPlayer dmcPointsList dmcAllTargets where
         func :: PlayerName -> [TablesPoint] -> [Int] -> [Int]
@@ -316,21 +433,16 @@ detachMovingChecker dmcCoord dmcBoard = dmcNewBoard where
                     ckrlst = tpCheckers pnt
                     enemylist = filter (\x -> (chPlayer x) /= name) ckrlst
                     itr = if (length enemylist > 1) then [] else [tpNumber pnt]
-
-    -- Проверка новой позиции с учетом шашек находящихся в новом пункте и значением выпавших на кубиках
     
+    -- Есть возможность перемещения
     dmcPntItr = getItrFuncList dmcPointsList func 0 where
         func :: TablesPoint -> Bool
         func pts = isInPolygon dmcCoord (tpPolygon pts)
-    dmcTargetInd = findIndex (\x -> x == dmcPntItr) dmcFitTargets
-    dmcMoveInd = findIndex (\x -> x == dmcPntItr) dmcAllTargets
-    dmcNewOffsets = func dmcOffsets dmcMoveInd where
-        func :: [Int] -> Maybe Int -> [Int]
-        func lst i = newlist where
-            a = if (isJust i) then splitAt (fromJust i) lst else ([],[])
-            newlist = if (isJust i) then (fst a) ++ [0] ++ (tail (snd a)) else lst
-            
-    dmcNewDices = (dmcNewOffsets !! 0, dmcNewOffsets !! 1)
+    -- Нет возможности перемещения => сразу возвращаем шашку в начальное положение
+
+    -- Проверка новой позиции с учетом шашек находящихся в новом пункте и значением выпавших на кубиках
+    
+    
     -- Если moveInd не Nothing то перемещаем в пункт под этим индексом иначе вовзращаем на позицию 
     -- Возвращение на позицию
     dmcNewBar = if (dmcSource == Just(CheckerSource Bar Nothing)) then
@@ -344,8 +456,23 @@ detachMovingChecker dmcCoord dmcBoard = dmcNewBoard where
             dmcOldPoints
     else
         dmcOldPoints
+    
+    -- Выход на новую позицию
+    dmcNewBar = dmcOldBar
+    dmcNewPoints = changePointInList dmcOldPoints dmcPntItr (fromJust(dmcChecker))
+
+    -- Пересчет возможных ходов при выходе на новую позицию
+    dmcMoveInd = findIndex (\x -> x == dmcPntItr) dmcAllTargets
+    dmcNewOffsets = func dmcOffsets dmcMoveInd where
+        func :: [Int] -> Maybe Int -> [Int]
+        func lst i = newlist where
+            a = if (isJust i) then splitAt (fromJust i) lst else ([],[])
+            newlist = if (isJust i) then (fst a) ++ [0] ++ (tail (snd a)) else lst
+    dmcNewDices = (dmcNewOffsets !! 0, dmcNewOffsets !! 1)
+
     -- удалить шашки противника по индексу moveInd переместить на бар 
 
     -- Перед созданием доски необходимо пересчитать полигоны шашек или только перемещаемой шашки
     
     dmcNewBoard = GameBoard (gbBoardPolygon dmcBoard) dmcNewPoints dmcNewBar (Nothing, Nothing) (gbState dmcBoard) dmcNewDices
+    -}

@@ -7,7 +7,7 @@ cabal-version: 1.12
 -- hash: dc583cb8d1c264fd2426778a3bdc70df21bde76917007f4991caeb87be8d44d6
 
 name:           tables
-version:        0.2.0.1
+version:        0.3.0.1
 description:    Please see the README on GitHub at <https://github.com/githubuser/tables#readme>
 homepage:       https://github.com/githubuser/tables#readme
 bug-reports:    https://github.com/githubuser/tables/issues

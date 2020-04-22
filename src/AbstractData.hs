@@ -5,6 +5,7 @@ module AbstractData where
 import System.IO
 import Graphics.Gloss.Interface.Pure.Game
 import Graphics.Gloss.Interface.Environment
+import System.Random
 
 -- ******************************************************************
 -- Объявление данных
@@ -73,5 +74,6 @@ data GameBoard = GameBoard
 data ApplicationData = ApplicationData
     {
         adScale :: (Float, Float),      -- Масштаб отрисовки
+        adGen   :: StdGen,              -- генератор
         adBoard :: GameBoard            -- Игровая доска
     }

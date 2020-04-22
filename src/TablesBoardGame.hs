@@ -7,6 +7,7 @@ import System.IO
 import Graphics.Gloss.Interface.Pure.Game
 import Graphics.Gloss.Interface.Environment
 import Data.Maybe
+import System.Random
 
 import AbstractData
 import Constants
@@ -17,30 +18,46 @@ import AdditionalFunction
 
 -- Функция отрисовки всех изображений
 drawGameApp :: ApplicationData -> Picture
-drawGameApp dgaData = result where
-    result = scale (fst(adScale dgaData)) (snd(adScale dgaData)) (getGamePicture (adBoard dgaData))
+drawGameApp dgaData = Pictures [result,infopic] where
+    infopic = if currentPlayer (gbState (adBoard dgaData)) == PlayerOne then
+        if currentAction (gbState (adBoard dgaData)) == Move then
+            Scale 0.3 0.3 (Text ("Player One Move" ++ show (gbDices (adBoard dgaData))))
+        else
+            Scale 0.3 0.3 (Text ("Player One Roll" ++ show (gbDices (adBoard dgaData))))
+    else
+        if currentAction (gbState (adBoard dgaData)) == Move then
+            Scale 0.3 0.3 (Text ("Player Two Move" ++ show (gbDices (adBoard dgaData))))
+        else
+            Scale 0.3 0.3 (Text ("Player Two Roll" ++ show (gbDices (adBoard dgaData))))
+    result = scale (fst(adScale dgaData)) (snd(adScale dgaData)) (getGamePicture (adBoard dgaData)) 
 
 -- Обработчик событий
 handleGameEvent :: Event -> ApplicationData -> ApplicationData
-handleGameEvent (EventKey (MouseButton LeftButton) Down _ hgeMouseCoord) x = xnew where
-    hgeNewBoard = attachMovingChecker hgeMouseCoord (adBoard x) -- При нестандартном разрешении координаты мыши плывут(БАГ)
-    xnew        = ApplicationData (adScale x) hgeNewBoard
-handleGameEvent (EventMotion hgeMouseCoord) x = xnew where
-    hgeNewBoard = translateMovingChecker hgeMouseCoord (adBoard x)
-    xnew        = ApplicationData (adScale x) hgeNewBoard
-handleGameEvent (EventKey (MouseButton LeftButton) Up _ hgeMouseCoord) x = xnew where
-    hgeNewBoard = detachMovingChecker hgeMouseCoord (adBoard x)
-    xnew        = ApplicationData (adScale x) hgeNewBoard
+handleGameEvent (EventKey (MouseButton LeftButton) Down _ (hgeMX, hgeMY)) x = xnew where
+    (hgeSX, hgeSY) = adScale x
+    hgeNewBoard = attachMovingChecker (hgeMX / hgeSX, hgeMY / hgeSY) (adBoard x) -- При нестандартном разрешении координаты мыши плывут(БАГ)
+    xnew        = ApplicationData (adScale x) (adGen x) hgeNewBoard
+handleGameEvent (EventMotion (hgeMX, hgeMY)) x = xnew where
+    (hgeSX, hgeSY) = adScale x
+    hgeNewBoard = translateMovingChecker (hgeMX / hgeSX, hgeMY / hgeSY) (adBoard x)
+    xnew        = ApplicationData (adScale x) (adGen x) hgeNewBoard
+handleGameEvent (EventKey (MouseButton LeftButton) Up _ (hgeMX, hgeMY)) x = xnew where
+    (hgeSX, hgeSY) = adScale x
+    hgeNewBoard = detachMovingChecker (hgeMX / hgeSX, hgeMY / hgeSY) (adBoard x)
+    xnew        = ApplicationData (adScale x) (adGen x) hgeNewBoard
 handleGameEvent (EventKey (SpecialKey KeySpace) Down _ _) x = xnew where
-    hgeNewBoard = rollDices (adBoard x)
-    xnew        = ApplicationData (adScale x) hgeNewBoard
+    xnew        = rollDices x
 handleGameEvent (EventKey (SpecialKey KeyF12) Down _ _) x = xnew where
-    xnew        = ApplicationData (adScale x) baseGameBoard
+    xnew        = ApplicationData (adScale x) (adGen x) baseGameBoard
 handleGameEvent _ x = x
 
 -- Обработчик кадра
 updateGameApp :: Float -> ApplicationData -> ApplicationData
 updateGameApp _ x = x
+
+-- Игровая доска
+baseGameBoard :: GameBoard
+baseGameBoard = GameBoard baseBoardPolygon (map recalcCheckerPoint baseTablesPoints) (recalcCheckerBar baseBar) (Nothing, Nothing) baseGameState (1, 1)
 
 -- ******************************************************************
 -- Описание основной функции программы
@@ -50,7 +67,8 @@ run = do
     let runScreenWidth = fromIntegral (fst runScreenSize)
     let runScreenHeight = fromIntegral (snd runScreenSize)
     let (runWidthScale, runHeightScale) = getScreenScale (runScreenWidth, runScreenHeight)
-    let initGameState = ApplicationData (runWidthScale, runHeightScale) baseGameBoard
+    gen <- getStdGen
+    let initGameState = ApplicationData (runWidthScale, runHeightScale) gen baseGameBoard
     play dispMode bgColor fps initGameState drawGameApp handleGameEvent updateGameApp
 -- Остатки HGE
 {- Левую кнопку мыши нажали

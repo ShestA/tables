@@ -6,6 +6,7 @@ import Graphics.Gloss.Interface.Pure.Game
 import Graphics.Gloss.Interface.Environment
 import Data.Maybe
 import Data.List
+import System.Random
 
 import AbstractData
 
@@ -179,22 +180,7 @@ getGamePicture ggpBoard = result where
                         else
                             getPolygonPicture (chPolygon (fromJust (fst(ggpMoveChecker))))
     result   =   Pictures [ggpBoardPicture, ggpBarPicture, ggpPointsPicture, ggpMoveCheckPicture]
-{-
--- При нахождении вытащить шашку из списка
-data OutPutCheckers = OutPutCheckers {opcList :: [Checker], opcElement :: Maybe Checker}
-swapChecker :: (Float, Float) -> [Checker] -> OutPutCheckers
-swapChecker scMouseCoord scList = scOutput where
-    scFlagsList = map (isInPolygon scMouseCoord) (map chPolygon scList)
-    scItr = getItrFuncList scFlagsList func 0 where
-        func :: Bool -> Bool
-        func x = x
-    scNewChecker = if (scItr == length scFlagsList) then
-        Nothing
-    else
-        Just (scList !! scItr)
-    scNewList = deleteListElement (scItr < length scFlagsList) scList scItr
-    scOutput = OutPutCheckers scNewList scNewChecker
--}
+
 -- При нахождении вытащить шашку из списка
 data OutPutCheckers = OutPutCheckers {opcList :: [Checker], opcElement :: Maybe Checker}
 swapChecker :: (Checker -> Bool) -> [Checker] -> OutPutCheckers
@@ -207,6 +193,7 @@ swapChecker scTest scList = scOutput where
         Just (scList !! (fromJust scItr))
     scNewList = deleteListElement (isJust scItr) scList (fromJust scItr)
     scOutput = OutPutCheckers scNewList scNewChecker
+
 -- Замена списка шашек в пункте
 replaceCheckersList :: TablesPoint -> OutPutCheckers -> TablesPoint
 replaceCheckersList rclPoint rclCheckersList = rclNewPoint where
@@ -231,6 +218,64 @@ findDropedChecker fdcPlayer fdcList = result where
                 func :: Checker -> Bool
                 func chk = (chPlayer chk == fdcPlayer)
     result = if (fdcItr == length fdcList) then True else False
+
+-- Пересчет координат шашек пункта
+recalcCheckerPoint :: TablesPoint -> TablesPoint
+recalcCheckerPoint x = xnew where
+    a = tpCheckers x
+    b = tpPolygon x
+    d = tpNumber x
+    ml = maxLengthY (fst b)
+    mdy = ml / fromIntegral (length a)
+    (cX, _) = centerOfPolygon (fst b)
+    fl = d < 12
+    h = if fl then ((maxY (fst b)) - 40) else ((minY (fst b)) + 40)
+    k = zip [0..] a
+    newc = if fl then map (func True mdy cX h) k else map (func False mdy cX h) k where
+        func :: Bool -> Float -> Float -> Float -> (Int, Checker) -> Checker
+        func True dy dx sy (n, c) = cnew where
+            cp = chPolygon c
+            cpnew = translatePolygon cp (dx, sy - ((fromIntegral n) * dy))
+            cnew = Checker (chPlayer c) cpnew
+        func False dy dx sy (n, c) = cnew where
+            cp = chPolygon c
+            cpnew = translatePolygon cp (dx, sy + ((fromIntegral n) * dy))
+            cnew = Checker (chPlayer c) cpnew
+    xnew = TablesPoint d newc b
+
+-- Пересчет координат шашек бара
+recalcCheckerBar :: TablesBar -> TablesBar
+recalcCheckerBar x = xnew where
+    a = tbCheckers x
+    b = tbPolygon x
+    c = filter (\x -> chPlayer x == PlayerOne) a
+    d = filter (\x -> chPlayer x == PlayerTwo) a
+    cl = length c
+    dl = length d
+    e = maxLengthX (fst b)
+    ey = maxLengthY (fst b)
+    edyc = ey / (fromIntegral cl)
+    edyd = ey / (fromIntegral dl)
+    f = e / 4
+    (g, h) = centerOfPolygon (fst b)
+    i = maxY (fst b)
+    j = minY (fst b)
+    k = zip [0..] c
+    l = zip [0..] d
+    m = map func k where
+        func :: (Int, Checker) -> Checker
+        func (n, o) = p where
+            r = chPolygon o
+            s = translatePolygon r (g - f, i - ((fromIntegral n) * edyc))
+            p = Checker PlayerOne s
+    t = map func l where
+        func :: (Int, Checker) -> Checker
+        func (n, o) = p where
+            r = chPolygon o
+            s = translatePolygon r (g + f, j + ((fromIntegral n) * edyd))
+            p = Checker PlayerTwo s
+    u = m ++ t
+    xnew = TablesBar u b
 
 -- Примагнитить шашку к движению мышки
 attachMovingChecker :: (Float, Float) -> GameBoard -> GameBoard
@@ -268,7 +313,14 @@ attachMovingChecker amcMouseCoord amcOldBoard = amcNewBoard where
                 amcOldPoints
             amcInputBar = swapChecker (\x -> isInPolygon amcMouseCoord (chPolygon x)) amcBarCheckers
             amcNewBarCheckers = opcList amcInputBar
-            amcNewBarChecker = opcElement amcInputBar
+            amcNewBarChecker = let amcTmpChecker = opcElement amcInputBar in
+                if isJust amcTmpChecker then
+                    if (((currentAction amcState) == Move) && ((currentPlayer amcState) == chPlayer (fromJust (amcTmpChecker)))) then
+                        amcTmpChecker
+                    else
+                        Nothing
+                else
+                    Nothing
             amcNewBarSource = if isJust(amcNewBarChecker) then Just (CheckerSource Bar Nothing) else Nothing
             amcNewBar = if isJust(amcNewBarChecker) then
                 TablesBar amcNewBarCheckers (tbPolygon amcOldBar)
@@ -323,10 +375,11 @@ detachMovingChecker dmcCoord dmcBoard = dmcNewBoard where
                     fromJust (csNumber (fromJust(dmcSource)))
                 else
                     fromJust (csNumber (fromJust(dmcSource)))
-            dmcAllTargets = if (dmcPlayer == PlayerOne) then 
+            dmcAllTargets' = if (dmcPlayer == PlayerOne) then 
                 map (\x -> dmcStart + x) dmcOffsets
             else
                 map (\x -> dmcStart - x) dmcOffsets
+            dmcAllTargets = filter (\x -> (x < 24) && (x > -1)) dmcAllTargets'
             dmcFitTargets = func dmcPlayer dmcOldPoints dmcAllTargets where
                 func :: PlayerName -> [TablesPoint] -> [Int] -> [Int]
                 func name pts targets = result where
@@ -341,14 +394,14 @@ detachMovingChecker dmcCoord dmcBoard = dmcNewBoard where
                 func :: TablesPoint -> Bool
                 func pts = isInPolygon dmcCoord (tpPolygon pts)
             dmcSearchFlag = elem dmcPlayerTarget dmcFitTargets
-            dmcNewBar' = if dmcSearchFlag then
+            dmcNewBar'' = if dmcSearchFlag then
                 dmcOldBar
             else
                 if (csSource (fromJust(dmcSource)) == Bar) then
                     TablesBar (dmcOldBarCheckers ++ [fromJust(dmcChecker)]) dmcOldBarPolygon
                 else
                     dmcOldBar
-            dmcNewPoints' = if dmcSearchFlag then
+            dmcNewPoints'' = if dmcSearchFlag then
                 changePointInList dmcOldPoints dmcPlayerTarget (fromJust(dmcChecker))
             else
                 if (csSource (fromJust(dmcSource)) == PointOnBoard) then
@@ -356,33 +409,35 @@ detachMovingChecker dmcCoord dmcBoard = dmcNewBoard where
                 else
                     dmcOldPoints
             dmcEnemyBeate = if dmcSearchFlag then
-                Just $ swapChecker (\x -> chPlayer x /= dmcPlayer) (tpCheckers (dmcNewPoints' !! dmcPlayerTarget))
+                Just $ swapChecker (\x -> chPlayer x /= dmcPlayer) (tpCheckers (dmcNewPoints'' !! dmcPlayerTarget))
             else
                 Nothing
-            dmcInitList = map (swapChecker (\x -> False)) (map tpCheckers dmcNewPoints')
+            dmcInitList = map (swapChecker (\x -> False)) (map tpCheckers dmcNewPoints'')
             dmcReadyList = changeListElement dmcSearchFlag dmcInitList (fromJust dmcEnemyBeate) dmcPlayerTarget
-            dmcNewPoints = if dmcSearchFlag then 
+            dmcNewPoints' = if dmcSearchFlag then 
                 if isJust (opcElement (fromJust dmcEnemyBeate)) then
-                    zipWith replaceCheckersList dmcNewPoints' dmcReadyList
+                    zipWith replaceCheckersList dmcNewPoints'' dmcReadyList
                 else
-                    dmcNewPoints'
+                    dmcNewPoints''
             else
-                dmcNewPoints'
-            dmcNewBar = if dmcSearchFlag then
+                dmcNewPoints''
+            dmcNewPoints = map recalcCheckerPoint dmcNewPoints'
+            dmcNewBar' = if dmcSearchFlag then
                 if isJust (opcElement (fromJust dmcEnemyBeate)) then
                     TablesBar (dmcOldBarCheckers ++ [fromJust (opcElement (fromJust dmcEnemyBeate))]) dmcOldBarPolygon
                 else
-                    dmcNewBar'
+                    dmcNewBar''
             else
-                dmcNewBar'
+                dmcNewBar''
+            dmcNewBar = recalcCheckerBar dmcNewBar'
             dmcMoveInd = if dmcSearchFlag then
-                findIndex (\x -> x == dmcPlayerTarget) dmcAllTargets
+                findIndex (\x -> x == dmcPlayerTarget) dmcAllTargets'
             else
                 Nothing
             dmcNewOffsets' = changeListElement (isJust dmcMoveInd) dmcOffsets 0 (fromJust dmcMoveInd)
             dmcNewOffsets = if (dmcNewOffsets' !! 2 == 0) then [0,0] else [dmcNewOffsets' !! 0, dmcNewOffsets' !! 1]
             dmcNewDices = (dmcNewOffsets !! 0, dmcNewOffsets !! 1)
-            dmcNewState = if dmcNewDices == (0,0) then 
+            dmcNewState = if ((dmcNewDices == (0,0)) || ((length dmcFitTargets) == 0)) then 
                 if dmcPlayer == PlayerOne then
                     ApplicationState PlayerTwo Roll False
                 else
@@ -391,8 +446,9 @@ detachMovingChecker dmcCoord dmcBoard = dmcNewBoard where
                 dmcOldState
 
 -- Бросаем кубики
-rollDices :: GameBoard -> GameBoard
-rollDices x = xnew where
+rollDices :: ApplicationData -> ApplicationData
+rollDices y = ynew where
+    x = adBoard y
     a = gbBoardPolygon x
     b = gbPoints x
     c = gbBar x
@@ -400,7 +456,11 @@ rollDices x = xnew where
     e = gbState x
     f = currentPlayer e
     g = ApplicationState f Move False
-    xnew = GameBoard a b c d g (1,1)
+    h = adGen y
+    i = randomR (1,6) h 
+    j = randomR (1,6) (snd i)
+    xnew = GameBoard a b c d g ((fst i),(fst j))
+    ynew = ApplicationData (adScale y) (snd j) xnew
 {-
 -- Открепить шашку
 detachMovingChecker :: (Float, Float) -> GameBoard -> GameBoard

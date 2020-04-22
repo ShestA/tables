@@ -30,29 +30,43 @@ baseBoardPolygon = ([(-900, 500), (900, 500),
                         (900, -500), (-900, -500)], makeColorI 91 58 41 255)
 
 -- Пробная шашки
-testChecker :: AuxPolygon
-testChecker = ((createCircle 10 40.0), makeColorI 255 255 255 255)
+whiteChecker :: AuxPolygon
+whiteChecker = ((createCircle 10 40.0), makeColorI 255 255 255 255)
 
-testChecker1 :: AuxPolygon
-testChecker1 = ((createCircle 10 40.0), makeColorI 0 0 0 255)
+blackChecker :: AuxPolygon
+blackChecker = ((createCircle 10 40.0), makeColorI 0 0 0 255)
 
 -- Базовый список пунктов
 baseTablesPoints :: [TablesPoint]
-baseTablesPoints = [(TablesPoint 0 [(Checker PlayerOne (translatePolygon testChecker (100, 100)))]  ([(800, 500), (880, 500), (840,100)], makeColorI 135 67 8 255)),
-                    (TablesPoint 1 []                                                               ([(680, 500), (760, 500), (720,100)], makeColorI 249 214 184 255)),
-                    (TablesPoint 2 [(Checker PlayerTwo (translatePolygon testChecker1 (140, 100)))]  ([(520, 500), (600, 500), (560,100)], makeColorI 135 67 8 255)),
-                    (TablesPoint 3 []                                                               ([(400, 500), (480, 500), (440,100)], makeColorI 249 214 184 255)),
-                    (TablesPoint 4 [(Checker PlayerOne (translatePolygon testChecker (190, 100)))]  ([(280, 500), (360, 500), (320,100)], makeColorI 135 67 8 255)),
-                    (TablesPoint 5 []                                                               ([(160, 500), (240, 500), (200,100)], makeColorI 249 214 184 255))]
+baseTablesPoints = [(TablesPoint 0 [(Checker PlayerOne whiteChecker),(Checker PlayerOne whiteChecker)]  ([(760, 500), (840, 500), (800,100)], makeColorI 135 67 8 255)),
+                    (TablesPoint 1 []([(640, 500), (720, 500), (680,100)], makeColorI 249 214 184 255)),
+                    (TablesPoint 2 []([(520, 500), (600, 500), (560,100)], makeColorI 135 67 8 255)),
+                    (TablesPoint 3 []([(400, 500), (480, 500), (440,100)], makeColorI 249 214 184 255)),
+                    (TablesPoint 4 []([(280, 500), (360, 500), (320,100)], makeColorI 135 67 8 255)),
+                    (TablesPoint 5 [(Checker PlayerTwo blackChecker),(Checker PlayerTwo blackChecker),(Checker PlayerTwo blackChecker),(Checker PlayerTwo blackChecker),(Checker PlayerTwo blackChecker)] ([(160, 500), (240, 500), (200,100)], makeColorI 249 214 184 255)),
+                    (TablesPoint 6 []([(-160, 500), (-240, 500), (-200,100)], makeColorI 135 67 8 255)),
+                    (TablesPoint 7 [(Checker PlayerTwo blackChecker),(Checker PlayerTwo blackChecker),(Checker PlayerTwo blackChecker)]  ([(-280, 500), (-360, 500), (-320,100)], makeColorI 249 214 184 255)),
+                    (TablesPoint 8 []([(-400, 500), (-480, 500), (-440,100)], makeColorI 135 67 8 255)),
+                    (TablesPoint 9 []([(-520, 500), (-600, 500), (-560,100)], makeColorI 249 214 184 255)),
+                    (TablesPoint 10 [] ([(-640, 500), (-720, 500), (-680,100)], makeColorI 135 67 8 255)),
+                    (TablesPoint 11 [(Checker PlayerOne whiteChecker),(Checker PlayerOne whiteChecker),(Checker PlayerOne whiteChecker),(Checker PlayerOne whiteChecker),(Checker PlayerOne whiteChecker)] ([(-760, 500), (-840, 500), (-800,100)], makeColorI 249 214 184 255)),
+                    (TablesPoint 12 [(Checker PlayerTwo blackChecker),(Checker PlayerTwo blackChecker),(Checker PlayerTwo blackChecker),(Checker PlayerTwo blackChecker),(Checker PlayerTwo blackChecker)] ([(-760, -500), (-840, -500), (-800,-100)], makeColorI 135 67 8 255)),
+                    (TablesPoint 13 []([(-640, -500), (-720, -500), (-680,-100)], makeColorI 249 214 184 255)),
+                    (TablesPoint 14 []  ([(-520, -500), (-600, -500), (-560,-100)], makeColorI 135 67 8 255)),
+                    (TablesPoint 15 []([(-400, -500), (-480, -500), (-440,-100)], makeColorI 249 214 184 255)),
+                    (TablesPoint 16 [(Checker PlayerOne whiteChecker),(Checker PlayerOne whiteChecker),(Checker PlayerOne whiteChecker)]  ([(-280, -500), (-360, -500), (-320,-100)], makeColorI 135 67 8 255)),
+                    (TablesPoint 17 []([(-160, -500), (-240, -500), (-200,-100)], makeColorI 249 214 184 255)),
+                    (TablesPoint 18 [(Checker PlayerOne whiteChecker),(Checker PlayerOne whiteChecker),(Checker PlayerOne whiteChecker),(Checker PlayerOne whiteChecker),(Checker PlayerOne whiteChecker)] ([(160, -500), (240, -500), (200,-100)], makeColorI 135 67 8 255)),
+                    (TablesPoint 19 []([(280, -500), (360, -500), (320,-100)], makeColorI 249 214 184 255)),
+                    (TablesPoint 20 []([(400, -500), (480, -500), (440,-100)], makeColorI 135 67 8 255)),
+                    (TablesPoint 21 []([(520, -500), (600, -500), (560,-100)], makeColorI 249 214 184 255)),
+                    (TablesPoint 22 []([(640, -500), (720, -500), (680,-100)], makeColorI 135 67 8 255)),
+                    (TablesPoint 23 [(Checker PlayerTwo blackChecker),(Checker PlayerTwo blackChecker)]([(760, -500), (840, -500), (800,-100)], makeColorI 249 214 184 255))]
 
 -- Базовый игровой бар
 baseBar :: TablesBar
-baseBar = TablesBar [(Checker PlayerOne testChecker)] ([(-80,500), (80, 500), (80, -500), (-80, -500)], makeColorI 118 60 40 255)
+baseBar = TablesBar [] ([(-80,500), (80, 500), (80, -500), (-80, -500)], makeColorI 118 60 40 255)
 
 -- Базовое игровое состояние
 baseGameState :: ApplicationState
-baseGameState = ApplicationState PlayerOne Move False
-
--- Игровая доска
-baseGameBoard :: GameBoard
-baseGameBoard = GameBoard baseBoardPolygon baseTablesPoints baseBar (Nothing, Nothing) baseGameState (1, 1)
+baseGameState = ApplicationState PlayerOne Roll False

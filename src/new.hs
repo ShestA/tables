@@ -1,103 +1,78 @@
--- Открепить шашку
-detachMovingChecker :: (Float, Float) -> GameBoard -> GameBoard
-detachMovingChecker dmcCoord dmcBoard = dmcNewBoard where
-    dmcBoardPolygon = gbBoardPolygon dmcBoard
-    dmcOldBar = gbBar dmcBoard
-    dmcOldBarCheckers = tbCheckers dmcOldBar
-    dmcOldBarPolygon = tbPolygon dmcOldBar
-    dmcOldPoints = gbPoints dmcBoard
-    dmcMoveChecker = gbChecker dmcBoard
-    dmcMoveChecker = gbChecker dmcBoard
-    dmcChecker = fst(dmcMoveChecker)
-    dmcSource = snd(dmcMoveChecker)
-    dmcOldDices = gbDices dmcBoard
-    dmcOldState = gbState dmcBoard
-    dmcPlayer = currentPlayer dmcOldState
-    dmcNewBoard = if (isJust dmcChecker) then
-        GameBoard dmcBoardPolygon dmcNewPoints dmcNewBar (Nothing, Nothing) dmcNewState dmcNewDices
+Выбор drop move производить при бросании кубиков. В то же время необходимо проверить доступность ходов. Если нет передать управление другому игрокуэ.
+При выборе drop или move и совершении хода необходимо снова проверить доступность ходов.
+
+tryDeleteChecker :: GameBoard -> GameBoard
+tryDeleteChecker tdcBoard = tdcNewBoard where
+    tdcBoardPolygon = gbBoardPolygon tdcBoard
+    tdcOldBar = gbBar tdcBoard
+    tdcOldBarCheckers = tbCheckers tdcOldBar
+    tdcOldBarPolygon = tbPolygon tdcOldBar
+    tdcOldPoints = gbPoints tdcBoard
+    tdcMoveChecker = gbChecker tdcBoard
+    tdcChecker = fst(tdcMoveChecker)
+    tdcSource = snd(tdcMoveChecker)
+    tdcOldDices = gbDices tdcBoard
+    tdcOldState = gbState tdcBoard
+    tdcPlayer = currentPlayer tdcOldState
+    tdcEndingFlag = theEnd tdcOldPoints tdcOldBar tdcPlayer where
+        theEnd :: [TablesPoint] -> TablesBar -> PlayerName -> Bool
+        theEnd tePoints teBar teName = teResult where
+            teFilteredPoints = if teName == PlayerOne then
+                filter (\x -> (tpNumber x) > 17) foo
+            else
+                filter (\x -> (tpNumber x) < 6) foo where
+                    foo = filter (\x -> length (filter (\y -> (chPlayer y) /= teName) (tpCheckers x)) == 0) tePoints
+                    teFilteredBar = filter (\x -> (chPlayer x) /= teName) (tbCheckers teBar)
+                    teResult = ((length teFilteredPoints) == 0) && ((length teFilteredBar) == 0)
+    tdcNewBoard = if tdcEndingFlag then
+        if (isJust tdcChecker) then 
+            if (csSource (fromJust(tdcSource)) == PointOnBoard) then
+                tdNewBoard'
+            else 
+                tdcBoard
+        else
+            tdcBoard
     else
-        dmcBoard where
-            dmcOffsets = [fst dmcOldDices, snd dmcOldDices, fst dmcOldDices + snd dmcOldDices]
-            dmcStart = if (csSource (fromJust(dmcSource)) == Bar) then 
-                -1 
+       tdcBoard where
+            -- Можно заканчивать игру...проверяем кубики
+            tdcTargets = if tdcPlayer == PlayerOne then
+                (24 - fst tdcOldDices, 24 - snd tdcOldDices)
             else
-                $fromJust (csNumber (fromJust(dmcSource)))
-            dmcAllTargets = if (dmcPlayer == PlayerOne) then 
-                map (\x -> x + dmcStart) dmcOffsets
-            else
-                map (\x -> x - dmcStart) dmcOffsets
-            dmcFitTargets = func dmcPlayer dmcPointsList dmcAllTargets where
-                func :: PlayerName -> [TablesPoint] -> [Int] -> [Int]
-                func name pts targets = result where
-                    lst = map (\x -> pts !! x) targets
-                    result = concat (map func1 lst) where
-                        func1 :: TablesPoint -> [Int]
-                        func1 pnt = itr where
-                            ckrlst = tpCheckers pnt
-                            enemylist = filter (\x -> (chPlayer x) /= name) ckrlst
-                            itr = if (length enemylist > 1) then [] else [tpNumber pnt]
-            dmcPlayerTarget = getItrFuncList dmcPointsList func 0 where
-                func :: TablesPoint -> Bool
-                func pts = isInPolygon dmcCoord (tpPolygon pts)
-            dmcSearchFlag = elem dmcPlayerTarget dmcFitTargets
-            dmcNewBar' = if dmcSearchFlag then
-                dmcOldBar
-            else
-                if (csSource (fromJust(dmcSource)) == Bar) then
-                    TablesBar (dmcOldBarCheckers ++ [fromJust(dmcChecker)]) dmcOldBarPolygon
+                (fst tdcOldDices - 1, snd tdcOldDices - 1)
+            fl1 = (fst tdcTargets) == fromJust (csNumber (fromJust(tdcSource)))
+            fl2 = (snd tdcTargets) == fromJust (csNumber (fromJust(tdcSource)))
+            fl3 = fl1 || fl2
+            -- Если условия соблюлись, двигающаяся шашка пропадёт
+            -- Пересчитываем оставшиеся кубики и меняем состояние, если надо
+            tdcNewDices = if fl3 then
+                if fl1 then 
+                    (0, snd tdcOldDices)
                 else
-                    dmcOldBar
-            dmcNewPoints' = if dmcSearchFlag then
-                changePointInList dmcOldPoints dmcPlayerTarget (fromJust(dmcChecker))
+                    (fst tdcOldDices, 0)
             else
-                if (csSource (fromJust(dmcSource)) == PointsOnBoard) then
-                    changePointInList dmcOldPoints (fromJust(csNumber (fromJust(dmcSource)))) (fromJust(dmcChecker))
-                else
-                    dmcOldPoints
-            dmcEnemyBeate = if dmcSearchFlag then
-                Just $ swapChecker (\x -> chPlayer x /= dmcPlayer) (tpCheckers (dmcNewPoints' !! dmcPlayerTarget))
+                tdcOldDices
+            tdcNewMoveChecker = if fl3 then
+                (Nothing, Nothing)
             else
-                Nothing
-            dmcInitList = map (swapChecker (\x -> False)) (map tpCheckers dmcNewPoints')
-            dmcReadyList = changeListElement dmcSearchFlag dmcInitList (fromJust dmcEnemyBeate) dmcPlayerTarget
-            dmcNewPoints = if dmcSearchFlag then 
-                if isJust (opcElement (fromJust dmcEnemyBeate)) then
-                    zipWith replaceCheckersList dmcNewPoints' dmcReadyList
-                else
-                    dmcNewPoints'
+                tdcMoveChecker
+            tdcNewTargets = if tdcPlayer == PlayerOne then
+                (24 - fst tdcNewDices, 24 - snd tdcNewDices)
             else
-                dmcNewPoints'
-            dmcNewBar = if dmcSearchFlag then
-                if isJust (opcElement dmcEnemyBeate) then
-                    TablesBar (dmcOldBarCheckers ++ [fromJust (opcElement dmcEnemyBeate)]) dmcOldBarPolygon
-                else
-                    dmcNewBar'
+                (fst tdcNewDices - 1, snd tdcNewDices - 1)
+            ffl1 = if (fst tdcNewDices > 0) then
+                (length (filter (\x -> chPlayer x == tdcPlayer) (tpCheckers (tdcOldPoints !! (fst tdcNewTargets))))) == 0
             else
-                dmcNewBar'
-            dmcMoveInd = if dmcSearchFlag then
-                findIndex (\x -> x == dmcPlayerTarget) dmcAllTargets
+                True
+            ffl2 = if (snd tdcNewDices > 0) then
+                (length (filter (\x -> chPlayer x == tdcPlayer) (tpCheckers (tdcOldPoints !! (snd tdcNewTargets))))) == 0
             else
-                Nothing
-            dmcNewOffsets' = changeListElement (isJust dmcMoveInd) dmcOffsets 0 (fromJust dmcMoveInd)
-            dmcNewOffsets = if (dmcNewOffsets' !! 2 == 0) then [0,0] else [dmcNewOffsets' !! 0, dmcNewOffsets' !! 1]
-            dmcNewDices = (dmcNewOffsets !! 0, dmcNewOffsets !! 1)
-            dmcNewState = if dmcNewDices == (0,0) then 
-                if dmcPlayer == PlayerOne then
+                True
+            tdcNewState = if (tdcNewDices == (0,0)) || (ffl1 && ffl2) then
+                if tdcPlayer == PlayerOne then
                     ApplicationState PlayerTwo Roll False
                 else
                     ApplicationState PlayerOne Roll False
             else
-                dmcOldState
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
+                tdcOldState
+            -- Пересоздаем доску
+            tdNewBoard' = GameBoard tdcBoardPolygon tdcOldPoints tdcOldBar tdcNewMoveChecker tdcNewState tdcNewDices

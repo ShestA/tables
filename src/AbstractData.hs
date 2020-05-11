@@ -25,7 +25,8 @@ data PlayerName =
 -- Сотстояния приложения
 data StepState = 
                 Move                    -- Ход игрока
-                | Roll  deriving (Eq)   -- Бросок костей игрока 
+                | Roll                  -- Бросок костей игрока
+                | Drop deriving (Eq)    -- Сброс шашек
 data ApplicationState = ApplicationState
     {
         currentPlayer   :: PlayerName,

@@ -304,7 +304,7 @@ attachMovingChecker amcMouseCoord amcOldBoard = amcNewBoard where
             else
                 Nothing
             amcNewPointSource = if isJust(amcNewPointChecker) then
-                    Just (CheckerSource PointOnBoard (return (amcItr))) 
+                    Just (CheckerSource PointOnBoard (return (tpNumber (amcOldPoints !! (amcItr)))))
                 else
                     Nothing
             amcNewPoints = if isJust(amcNewPointChecker) then
@@ -371,10 +371,7 @@ detachMovingChecker dmcCoord dmcBoard = dmcNewBoard where
                 else
                     24
             else
-                if (dmcPlayer == PlayerOne) then
-                    fromJust (csNumber (fromJust(dmcSource)))
-                else
-                    fromJust (csNumber (fromJust(dmcSource)))
+                fromJust (csNumber (fromJust(dmcSource)))
             dmcAllTargets' = if (dmcPlayer == PlayerOne) then 
                 map (\x -> dmcStart + x) dmcOffsets
             else
@@ -437,17 +434,21 @@ detachMovingChecker dmcCoord dmcBoard = dmcNewBoard where
             dmcNewOffsets' = changeListElement (isJust dmcMoveInd) dmcOffsets 0 (fromJust dmcMoveInd)
             dmcNewOffsets = if (dmcNewOffsets' !! 2 == 0) then [0,0] else [dmcNewOffsets' !! 0, dmcNewOffsets' !! 1]
             dmcNewDices = (dmcNewOffsets !! 0, dmcNewOffsets !! 1)
-            dmcNewState = if ((dmcNewDices == (0,0)) || ((length dmcFitTargets) == 0)) then 
-                if dmcPlayer == PlayerOne then
-                    ApplicationState PlayerTwo Roll False
-                else
-                    ApplicationState PlayerOne Roll False
-            else
+            --dmcNewState = if ((dmcNewDices == (0,0)) || ((length dmcFitTargets) == 0)) then 
+            dmcNewState = if (dmcNewDices /= (0,0)) && canYouDo dmcBoard then
                 dmcOldState
+            else
+                ApplicationState (currentPlayer dmcOldState) Move True
+                --if dmcPlayer == PlayerOne then
+                --    ApplicationState PlayerTwo Roll False
+                --else
+                --    ApplicationState PlayerOne Roll False
+            --else
+            --    dmcOldState
 
 -- Бросаем кубики
 rollDices :: ApplicationData -> ApplicationData
-rollDices y = ynew where
+rollDices y = ynew where 
     x = adBoard y
     a = gbBoardPolygon x
     b = gbPoints x
@@ -455,84 +456,155 @@ rollDices y = ynew where
     d = gbChecker x
     e = gbState x
     f = currentPlayer e
-    g = ApplicationState f Move False
-    h = adGen y
-    i = randomR (1,6) h 
-    j = randomR (1,6) (snd i)
-    xnew = GameBoard a b c d g ((fst i),(fst j))
-    ynew = ApplicationData (adScale y) (snd j) xnew
-{-
--- Открепить шашку
-detachMovingChecker :: (Float, Float) -> GameBoard -> GameBoard
-detachMovingChecker dmcCoord dmcBoard = dmcNewBoard where
-    dmcOldBar = gbBar dmcBoard
-    
-    dmcOldPoints = gbPoints dmcBoard
-    dmcPointsList = gbPoints dmcBoard
-    
-    dmcMoveChecker = gbChecker dmcBoard
-    dmcChecker = fst(dmcMoveChecker)
-    dmcSource = snd(dmcMoveChecker)
-    dmcOldDices = gbDices dmcBoard
-    dmcState = gbState dmcBoard
-    dmcPlayer = currentPlayer dmcState
+    ff = currentAction e
+    dd = gbDices x
+    isRoll = ff == Roll
+    ynew = if isRoll then
+        ApplicationData (adScale y) (snd j) xnew
+    else 
+        y where
+        g = ApplicationState f Move False
+        h = adGen y
+        i = randomR (1,6) h 
+        j = randomR (1,6) (snd i)
+        xnew = GameBoard a b c d g ((fst i), (fst j))
 
-    -- Шашки нет
-    
-    -- Шашка есть
-    dmcOffsets = [fst dmcOldDices, snd dmcOldDices, fst dmcOldDices + snd dmcOldDices]
-    dmcStart = if (csSource (fromJust(dmcSource)) == Bar) then -1 else (fromJust(csNumber (fromJust(dmcSource))))
-    dmcAllTargets = if (dmcPlayer == PlayerOne) then map (\x -> x + dmcStart) dmcOffsets else map (\x -> x - dmcStart) dmcOffsets
-    dmcFitTargets = func dmcPlayer dmcPointsList dmcAllTargets where
-        func :: PlayerName -> [TablesPoint] -> [Int] -> [Int]
-        func name pts targets = result where
-            lst = map (\x -> pts !! x) targets
-            result = concat (map func1 lst) where
-                func1 :: TablesPoint -> [Int]
-                func1 pnt = itr where
-                    ckrlst = tpCheckers pnt
-                    enemylist = filter (\x -> (chPlayer x) /= name) ckrlst
-                    itr = if (length enemylist > 1) then [] else [tpNumber pnt]
-    
-    -- Есть возможность перемещения
-    dmcPntItr = getItrFuncList dmcPointsList func 0 where
-        func :: TablesPoint -> Bool
-        func pts = isInPolygon dmcCoord (tpPolygon pts)
-    -- Нет возможности перемещения => сразу возвращаем шашку в начальное положение
+canDeleteChecker :: GameBoard -> Bool
+canDeleteChecker board = result where
+    tdcOldPoints = gbPoints board
+    tdcOldBar = gbBar board
+    tdcOldState = gbState board
+    tdcPlayer = currentPlayer tdcOldState
+    result = theEnd tdcOldPoints tdcOldBar tdcPlayer where
+        theEnd :: [TablesPoint] -> TablesBar -> PlayerName -> Bool
+        theEnd tePoints teBar teName = teResult where
+            teFilteredPoints = if teName == PlayerOne then
+                filter (\x -> (tpNumber x) < 18) foo
+            else
+                filter (\x -> (tpNumber x) > 5) foo where
+                    foo = filter (\x -> length (filter (\y -> (chPlayer y) == teName) (tpCheckers x)) > 0) tePoints
+            teFilteredBar = filter (\x -> (chPlayer x) == teName) (tbCheckers teBar)
+            teResult = ((length teFilteredPoints) == 0) && ((length teFilteredBar) == 0)
 
-    -- Проверка новой позиции с учетом шашек находящихся в новом пункте и значением выпавших на кубиках
-    
-    
-    -- Если moveInd не Nothing то перемещаем в пункт под этим индексом иначе вовзращаем на позицию 
-    -- Возвращение на позицию
-    dmcNewBar = if (dmcSource == Just(CheckerSource Bar Nothing)) then
-        TablesBar ((tbCheckers dmcOldBar) ++ [fromJust(dmcChecker)]) (tbPolygon dmcOldBar)
-    else
-        dmcOldBar
-    dmcNewPoints = if (isJust(dmcSource)) then
-        if ((csSource (fromJust(dmcSource))) == PointOnBoard) then
-            changePointInList dmcOldPoints (fromJust(csNumber (fromJust(dmcSource)))) (fromJust(dmcChecker))
+tryDeleteChecker :: GameBoard -> GameBoard
+tryDeleteChecker tdcBoard = tdcNewBoard where
+    tdcBoardPolygon = gbBoardPolygon tdcBoard
+    tdcOldBar = gbBar tdcBoard
+    tdcOldBarCheckers = tbCheckers tdcOldBar
+    tdcOldBarPolygon = tbPolygon tdcOldBar
+    tdcOldPoints = gbPoints tdcBoard
+    tdcMoveChecker = gbChecker tdcBoard
+    tdcChecker = fst(tdcMoveChecker)
+    tdcSource = snd(tdcMoveChecker)
+    tdcOldDices = gbDices tdcBoard
+    tdcOldState = gbState tdcBoard
+    tdcPlayer = currentPlayer tdcOldState
+    tdcEndingFlag = canDeleteChecker tdcBoard
+--    tdcEndingFlag = theEnd tdcOldPoints tdcOldBar tdcPlayer where
+--        theEnd :: [TablesPoint] -> TablesBar -> PlayerName -> Bool
+--        theEnd tePoints teBar teName = teResult where
+--            teFilteredPoints = if teName == PlayerOne then
+--                filter (\x -> (tpNumber x) < 18) foo
+--            else
+--                filter (\x -> (tpNumber x) > 5) foo where
+--                    foo = filter (\x -> length (filter (\y -> (chPlayer y) == teName) (tpCheckers x)) == 0) tePoints
+--            teFilteredBar = filter (\x -> (chPlayer x) == teName) (tbCheckers teBar)
+--            teResult = ((length teFilteredPoints) == 0) && ((length teFilteredBar) == 0)
+    tdcNewBoard = if tdcEndingFlag then
+        if (isJust tdcChecker) then 
+            if (csSource (fromJust(tdcSource)) == PointOnBoard) then
+                tdNewBoard'
+            else 
+                tdcBoard
         else
-            dmcOldPoints
+            tdcBoard
     else
-        dmcOldPoints
-    
-    -- Выход на новую позицию
-    dmcNewBar = dmcOldBar
-    dmcNewPoints = changePointInList dmcOldPoints dmcPntItr (fromJust(dmcChecker))
-
-    -- Пересчет возможных ходов при выходе на новую позицию
-    dmcMoveInd = findIndex (\x -> x == dmcPntItr) dmcAllTargets
-    dmcNewOffsets = func dmcOffsets dmcMoveInd where
-        func :: [Int] -> Maybe Int -> [Int]
-        func lst i = newlist where
-            a = if (isJust i) then splitAt (fromJust i) lst else ([],[])
-            newlist = if (isJust i) then (fst a) ++ [0] ++ (tail (snd a)) else lst
-    dmcNewDices = (dmcNewOffsets !! 0, dmcNewOffsets !! 1)
-
-    -- удалить шашки противника по индексу moveInd переместить на бар 
-
-    -- Перед созданием доски необходимо пересчитать полигоны шашек или только перемещаемой шашки
-    
-    dmcNewBoard = GameBoard (gbBoardPolygon dmcBoard) dmcNewPoints dmcNewBar (Nothing, Nothing) (gbState dmcBoard) dmcNewDices
-    -}
+       tdcBoard where
+            -- Можно заканчивать игру...проверяем кубики
+            tdcTargets = if tdcPlayer == PlayerOne then
+                (24 - fst tdcOldDices, 24 - snd tdcOldDices)
+            else
+                (fst tdcOldDices - 1, snd tdcOldDices - 1)
+            fl1 = (fst tdcTargets) == fromJust (csNumber (fromJust(tdcSource)))
+            fl2 = (snd tdcTargets) == fromJust (csNumber (fromJust(tdcSource)))
+            fl3 = fl1 || fl2
+            -- Если условия соблюлись, двигающаяся шашка пропадёт
+            -- Пересчитываем оставшиеся кубики и меняем состояние, если надо
+            tdcNewDices = if fl3 then
+                if fl1 then 
+                    (0, snd tdcOldDices)
+                else
+                    (fst tdcOldDices, 0)
+            else
+                tdcOldDices
+            tdcNewMoveChecker = if fl3 then
+                (Nothing, Nothing)
+            else
+                tdcMoveChecker
+            tdcNewTargets = if tdcPlayer == PlayerOne then
+                (24 - fst tdcNewDices, 24 - snd tdcNewDices)
+            else
+                (fst tdcNewDices - 1, snd tdcNewDices - 1)
+            ffl1 = if (fst tdcNewDices > 0) then
+                (length (filter (\x -> chPlayer x == tdcPlayer) (tpCheckers (tdcOldPoints !! (fst tdcNewTargets))))) == 0
+            else
+                True
+            ffl2 = if (snd tdcNewDices > 0) then
+                (length (filter (\x -> chPlayer x == tdcPlayer) (tpCheckers (tdcOldPoints !! (snd tdcNewTargets))))) == 0
+            else
+                True
+            tdcNewState = if (tdcNewDices == (0,0)) || ((not (canYouDo tdcBoard)) && ((length (tpCheckers (tdcOldPoints !! (fst tdcTargets)))) == 0) && ((length (tpCheckers (tdcOldPoints !! (snd tdcTargets)))) == 0)) then
+                if tdcPlayer == PlayerOne then
+                    ApplicationState PlayerTwo Roll False
+                else
+                    ApplicationState PlayerOne Roll False
+            else
+                tdcOldState
+            -- Пересоздаем доску
+            tdNewBoard' = GameBoard tdcBoardPolygon tdcOldPoints tdcOldBar tdcNewMoveChecker tdcNewState tdcNewDices
+canYouDo :: GameBoard -> Bool
+canYouDo board = result where
+    state = gbState board
+    dices = gbDices board
+    bar = gbBar board
+    points = gbPoints board
+    player = currentPlayer state
+    -- Определим номера пунктов принадлежащих игроку [Int]
+    playerPoints = map tpNumber (filter (\x -> length (filter (\y -> (chPlayer y) == player) (tpCheckers x)) > 0) points)
+    -- Определим номера пунктов доступных игроку(шашек противника <2)
+    possiblePoints = map tpNumber (filter (\x -> length (filter (\y -> (chPlayer y) /= player) (tpCheckers x)) < 2) points)
+    -- Определим наличие шашек игрока на баре
+    playerBar = length $ filter (\x -> (chPlayer x) == player) (tbCheckers bar)
+    -- Если шашки есть, проверим, может ли игрок походить ими
+    -- вхождение кубиков в список доступные пункты
+    resultBar = if playerBar /= 0 then
+        length ( intersect possiblePoints [if player == PlayerOne then fst dices - 1 else 24 - fst dices, if player == PlayerOne then snd dices - 1 else 24 - snd dices]) > 0
+    else
+        True -- Если шашек нет, то надо проверить пункты
+    -- Теперь надо определить доступные ходы шашками на доске
+    -- Для этого прибавим(вычтем) к номерам пунктов принадлежащих игроку кубики
+    -- И найдем вхождение получившегося списка со списком номеров доступных пунктов
+    resultPoints = (length (intersect possiblePoints ((map (if player == PlayerOne then (+fst dices) else (subtract (fst dices))) playerPoints) ++ (map (if player == PlayerOne then (+snd dices) else (subtract (snd dices))) playerPoints) ++ (map (if player == PlayerOne then (+ (fst dices + snd dices)) else (subtract (fst dices + snd dices))) playerPoints))) > 0) || playerBar /= 0
+    result = resultPoints && resultBar
+tryStepped :: GameBoard -> GameBoard
+tryStepped board = newboard where
+    polygon = gbBoardPolygon board
+    points = gbPoints board
+    bar = gbBar board
+    checker = gbChecker board
+    state = gbState board
+    dices = gbDices board
+    newstate = if isFinish state then 
+        if currentAction state == Roll then
+            ApplicationState (currentPlayer state) Move False
+        else
+            if currentPlayer state == PlayerOne then
+                ApplicationState PlayerTwo Roll False
+            else
+                ApplicationState PlayerOne Roll False
+    else
+        state
+    newboard = GameBoard polygon points bar checker newstate dices
+canYouFinish :: GameBoard -> Bool
+canYouFinish board = result where
+    result = isFinish (gbState board)

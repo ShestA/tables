@@ -475,7 +475,7 @@ canDeleteChecker board = result where
     tdcOldBar = gbBar board
     tdcOldState = gbState board
     tdcPlayer = currentPlayer tdcOldState
-    result = theEnd tdcOldPoints tdcOldBar tdcPlayer where
+    result' = theEnd tdcOldPoints tdcOldBar tdcPlayer where
         theEnd :: [TablesPoint] -> TablesBar -> PlayerName -> Bool
         theEnd tePoints teBar teName = teResult where
             teFilteredPoints = if teName == PlayerOne then
@@ -485,6 +485,37 @@ canDeleteChecker board = result where
                     foo = filter (\x -> length (filter (\y -> (chPlayer y) == teName) (tpCheckers x)) > 0) tePoints
             teFilteredBar = filter (\x -> (chPlayer x) == teName) (tbCheckers teBar)
             teResult = ((length teFilteredPoints) == 0) && ((length teFilteredBar) == 0)
+    resultl = if fst (gbDices board) == 0 then
+        if (snd (gbDices board)) == 0 then
+            False
+        else
+            length ys > 0
+    else
+        if (snd (gbDices board)) == 0 then
+            length xs > 0
+        else
+            (length xs > 0) || (length ys > 0) where
+                xsxxx = if tdcPlayer == PlayerOne then (24 - (fst (gbDices board))) else (fst (gbDices board)) - 1
+                ysyyy = if tdcPlayer == PlayerOne then (24 - (snd (gbDices board))) else (snd (gbDices board)) - 1
+                xsxx = tdcOldPoints !! xsxxx
+                ysyy = tdcOldPoints !! ysyyy
+                xsx = tpCheckers xsxx
+                ysy = tpCheckers ysyy
+                xs = filter (\x-> chPlayer x == tdcPlayer) xsx
+                ys = filter (\x-> chPlayer x == tdcPlayer) ysy
+    resultc = if isJust (snd (gbChecker board)) then
+        if (csSource (fromJust (snd (gbChecker board)))) == PointOnBoard then
+            if tdcPlayer == PlayerOne then
+                (fromJust (csNumber (fromJust (snd (gbChecker board)))) == (24 - (fst (gbDices board)))) || (fromJust (csNumber (fromJust (snd (gbChecker board)))) == (24 - (snd (gbDices board))))
+            else
+                (fromJust (csNumber (fromJust (snd (gbChecker board)))) == ((fst (gbDices board)) - 1)) || (fromJust (csNumber (fromJust (snd (gbChecker board)))) == ((snd (gbDices board)) - 1))
+        else
+            False
+    else
+        False
+    result = result' && (resultl || resultc)
+    
+    
 
 tryDeleteChecker :: GameBoard -> GameBoard
 tryDeleteChecker tdcBoard = tdcNewBoard where
@@ -500,16 +531,6 @@ tryDeleteChecker tdcBoard = tdcNewBoard where
     tdcOldState = gbState tdcBoard
     tdcPlayer = currentPlayer tdcOldState
     tdcEndingFlag = canDeleteChecker tdcBoard
---    tdcEndingFlag = theEnd tdcOldPoints tdcOldBar tdcPlayer where
---        theEnd :: [TablesPoint] -> TablesBar -> PlayerName -> Bool
---        theEnd tePoints teBar teName = teResult where
---            teFilteredPoints = if teName == PlayerOne then
---                filter (\x -> (tpNumber x) < 18) foo
---            else
---                filter (\x -> (tpNumber x) > 5) foo where
---                    foo = filter (\x -> length (filter (\y -> (chPlayer y) == teName) (tpCheckers x)) == 0) tePoints
---            teFilteredBar = filter (\x -> (chPlayer x) == teName) (tbCheckers teBar)
---            teResult = ((length teFilteredPoints) == 0) && ((length teFilteredBar) == 0)
     tdcNewBoard = if tdcEndingFlag then
         if (isJust tdcChecker) then 
             if (csSource (fromJust(tdcSource)) == PointOnBoard) then
@@ -584,7 +605,20 @@ canYouDo board = result where
     -- Теперь надо определить доступные ходы шашками на доске
     -- Для этого прибавим(вычтем) к номерам пунктов принадлежащих игроку кубики
     -- И найдем вхождение получившегося списка со списком номеров доступных пунктов
-    resultPoints = (length (intersect possiblePoints ((map (if player == PlayerOne then (+fst dices) else (subtract (fst dices))) playerPoints) ++ (map (if player == PlayerOne then (+snd dices) else (subtract (snd dices))) playerPoints) ++ (map (if player == PlayerOne then (+ (fst dices + snd dices)) else (subtract (fst dices + snd dices))) playerPoints))) > 0) || playerBar /= 0
+    pts = if fst dices /=  0 then
+        map (if player == PlayerOne then (+(fst dices)) else (subtract (fst dices))) playerPoints
+    else
+        []
+    ptss = if snd dices /= 0 then
+        map (if player == PlayerOne then (+(snd dices)) else (subtract (snd dices))) playerPoints
+    else
+        []
+    ptsss = if (fst dices /= 0) && (snd dices /= 0) then
+        map (if player == PlayerOne then (+ (fst dices + snd dices)) else (subtract (fst dices + snd dices))) playerPoints
+    else 
+        []
+    ptssss = pts ++ ptss ++ ptsss
+    resultPoints = ((length (intersect possiblePoints ptssss)) > 0) || playerBar /= 0
     result = resultPoints && resultBar
 tryStepped :: GameBoard -> GameBoard
 tryStepped board = newboard where
@@ -594,7 +628,7 @@ tryStepped board = newboard where
     checker = gbChecker board
     state = gbState board
     dices = gbDices board
-    newstate = if isFinish state then 
+    newstate = if (isFinish state) || ((not (canYouDo board)) && (not (canDeleteChecker board)) && currentAction state == Move) then 
         if currentAction state == Roll then
             ApplicationState (currentPlayer state) Move False
         else
@@ -608,3 +642,11 @@ tryStepped board = newboard where
 canYouFinish :: GameBoard -> Bool
 canYouFinish board = result where
     result = isFinish (gbState board)
+
+win :: GameBoard -> PlayerName -> Bool
+win board name = result where
+    points = gbPoints board
+    bar = gbBar board
+    playerPoints = map tpNumber (filter (\x -> length (filter (\y -> (chPlayer y) == name) (tpCheckers x)) > 0) points)
+    playerBar = length $ filter (\x -> (chPlayer x) == name) (tbCheckers bar)
+    result = (length playerPoints == 0) && (playerBar == 0)

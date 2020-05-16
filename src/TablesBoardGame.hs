@@ -116,7 +116,7 @@ updateGameApp _ x = x
 
 -- Игровая доска
 baseGameBoard :: GameBoard
-baseGameBoard = GameBoard baseBoardPolygon (map recalcCheckerPoint baseTablesPoints) (recalcCheckerBar baseBar) (Nothing, Nothing) baseGameState (1, 1)
+baseGameBoard = GameBoard baseBoardPolygon (map recalcCheckerPoint baseTablesPoints) (recalcCheckerBar baseBar) (Nothing, Nothing) baseGameState (1, 1) (False, False)
 
 -- ******************************************************************
 -- Описание основной функции программы

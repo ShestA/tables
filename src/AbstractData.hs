@@ -69,7 +69,8 @@ data GameBoard = GameBoard
         gbBar           :: TablesBar,                       -- Игровой бар
         gbChecker       :: (Maybe Checker, Maybe CheckerSource),   -- Перемещаемая шашка и ее источник
         gbState         :: ApplicationState,                -- Игровое состояние
-        gbDices         :: (Int, Int)                       -- Игровые кости
+        gbDices         :: (Int, Int),                       -- Игровые кости
+        gbDoubles       :: (Bool, Bool)
     }
 -- Игровое положение
 data ApplicationData = ApplicationData

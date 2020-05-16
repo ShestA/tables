@@ -288,9 +288,9 @@ attachMovingChecker amcMouseCoord amcOldBoard = amcNewBoard where
     amcOldBoardPolygon = (gbBoardPolygon amcOldBoard)
     amcBarIsEmpty = findDropedChecker (currentPlayer amcState) amcBarCheckers
     amcNewBoard = if amcBarIsEmpty then
-        GameBoard amcOldBoardPolygon amcNewPoints amcOldBar (amcNewPointChecker, amcNewPointSource) amcState amcOldDices
+        GameBoard amcOldBoardPolygon amcNewPoints amcOldBar (amcNewPointChecker, amcNewPointSource) amcState amcOldDices (gbDoubles amcOldBoard)
     else
-        GameBoard amcOldBoardPolygon amcOldPoints amcNewBar (amcNewBarChecker, amcNewBarSource) amcState amcOldDices where
+        GameBoard amcOldBoardPolygon amcOldPoints amcNewBar (amcNewBarChecker, amcNewBarSource) amcState amcOldDices (gbDoubles amcOldBoard) where
             amcInputPoints = map (swapChecker (\x -> isInPolygon amcMouseCoord (chPolygon x))) (map tpCheckers amcOldPoints)
             amcItr = getItrFuncList (amcInputPoints) func 0 where
                 func :: OutPutCheckers -> Bool
@@ -344,7 +344,7 @@ translateMovingChecker tmcCoord tmcBoard = tmcNewBoard where
     tmcOldBoardPolygon = (gbBoardPolygon tmcBoard)
     tmcOldDices = (gbDices tmcBoard)
     tmcState = gbState tmcBoard
-    tmcNewBoard = GameBoard tmcOldBoardPolygon (gbPoints tmcBoard) (gbBar tmcBoard) (tmcNewChecker, tmcSource) tmcState tmcOldDices
+    tmcNewBoard = GameBoard tmcOldBoardPolygon (gbPoints tmcBoard) (gbBar tmcBoard) (tmcNewChecker, tmcSource) tmcState tmcOldDices (gbDoubles tmcBoard)
 
 -- Открепить шашку
 detachMovingChecker :: (Float, Float) -> GameBoard -> GameBoard
@@ -361,7 +361,7 @@ detachMovingChecker dmcCoord dmcBoard = dmcNewBoard where
     dmcOldState = gbState dmcBoard
     dmcPlayer = currentPlayer dmcOldState
     dmcNewBoard = if (isJust dmcChecker) then
-        GameBoard dmcBoardPolygon dmcNewPoints dmcNewBar (Nothing, Nothing) dmcNewState dmcNewDices
+        GameBoard dmcBoardPolygon dmcNewPoints dmcNewBar (Nothing, Nothing) dmcNewState dmcNewDices newDoubles
     else
         dmcBoard where
             dmcOffsets = [fst dmcOldDices, snd dmcOldDices, fst dmcOldDices + snd dmcOldDices]
@@ -433,7 +433,25 @@ detachMovingChecker dmcCoord dmcBoard = dmcNewBoard where
                 Nothing
             dmcNewOffsets' = changeListElement (isJust dmcMoveInd) dmcOffsets 0 (fromJust dmcMoveInd)
             dmcNewOffsets = if (dmcNewOffsets' !! 2 == 0) then [0,0] else [dmcNewOffsets' !! 0, dmcNewOffsets' !! 1]
-            dmcNewDices = (dmcNewOffsets !! 0, dmcNewOffsets !! 1)
+            fl1 = if (fst (gbDoubles dmcBoard)) && ((dmcNewOffsets !! 0) == 0) then
+                True
+            else
+                False
+            fl2 = if (snd (gbDoubles dmcBoard)) && ((dmcNewOffsets !! 1) == 0) then
+                True
+            else
+                False
+            newDoubles = if fl1 then
+                if fl2 then
+                    (False, False)
+                else
+                    (False, snd (gbDoubles dmcBoard))
+            else
+                if fl2 then
+                    (fst (gbDoubles dmcBoard), False)
+                else
+                    (fst (gbDoubles dmcBoard), snd (gbDoubles dmcBoard))
+            dmcNewDices = (if fl1 then dmcOffsets !! 0 else dmcNewOffsets !! 0, if fl2 then dmcOffsets !! 1 else dmcNewOffsets !! 1)
             --dmcNewState = if ((dmcNewDices == (0,0)) || ((length dmcFitTargets) == 0)) then 
             dmcNewState = if (dmcNewDices /= (0,0)) && canYouDo dmcBoard then
                 dmcOldState
@@ -467,7 +485,7 @@ rollDices y = ynew where
         h = adGen y
         i = randomR (1,6) h 
         j = randomR (1,6) (snd i)
-        xnew = GameBoard a b c d g ((fst i), (fst j))
+        xnew = GameBoard a b c d g ((fst i), (fst j)) (if fst i == fst j then (True,True) else (False,False))
 
 canDeleteChecker :: GameBoard -> Bool
 canDeleteChecker board = result where
@@ -551,11 +569,35 @@ tryDeleteChecker tdcBoard = tdcNewBoard where
             fl3 = fl1 || fl2
             -- Если условия соблюлись, двигающаяся шашка пропадёт
             -- Пересчитываем оставшиеся кубики и меняем состояние, если надо
-            tdcNewDices = if fl3 then
-                if fl1 then 
-                    (0, snd tdcOldDices)
+            dfl1 = if (fst (gbDoubles tdcBoard)) && fl1 then
+                True
+            else
+                False
+            dfl2 = if (snd (gbDoubles tdcBoard)) && fl2 then
+                True
+            else
+                False
+            newDoubles = if dfl1 then
+                if dfl2 then
+                    (False, False)
                 else
-                    (fst tdcOldDices, 0)
+                    (False, snd (gbDoubles tdcBoard))
+            else
+                if dfl2 then
+                    (fst (gbDoubles tdcBoard), False)
+                else
+                    (fst (gbDoubles tdcBoard), snd (gbDoubles tdcBoard))
+            tdcNewDices = if fl3 then
+                if fl1 then
+                    if dfl1 then
+                        (fst tdcOldDices, snd tdcOldDices)
+                    else
+                        (0, snd tdcOldDices)
+                else
+                    if dfl2 then
+                        (fst tdcOldDices, snd tdcOldDices)
+                    else
+                        (fst tdcOldDices, 0)
             else
                 tdcOldDices
             tdcNewMoveChecker = if fl3 then
@@ -582,7 +624,7 @@ tryDeleteChecker tdcBoard = tdcNewBoard where
             else
                 tdcOldState
             -- Пересоздаем доску
-            tdNewBoard' = GameBoard tdcBoardPolygon tdcOldPoints tdcOldBar tdcNewMoveChecker tdcNewState tdcNewDices
+            tdNewBoard' = GameBoard tdcBoardPolygon tdcOldPoints tdcOldBar tdcNewMoveChecker tdcNewState tdcNewDices newDoubles
 canYouDo :: GameBoard -> Bool
 canYouDo board = result where
     state = gbState board
@@ -638,7 +680,11 @@ tryStepped board = newboard where
                 ApplicationState PlayerOne Roll False
     else
         state
-    newboard = GameBoard polygon points bar checker newstate dices
+    newdoubles = if (isFinish state) || ((not (canYouDo board)) && (not (canDeleteChecker board)) && currentAction state == Move) then 
+        (False, False)
+    else
+        gbDoubles board
+    newboard = GameBoard polygon points bar checker newstate dices newdoubles
 canYouFinish :: GameBoard -> Bool
 canYouFinish board = result where
     result = isFinish (gbState board)
